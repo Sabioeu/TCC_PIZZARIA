@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import api from '../api/api';
 import { demoCustomers, demoDashboard, demoFinance, demoInventory, demoOrders, demoProducts, demoTables } from '../data/demoData';
 
@@ -11,8 +11,11 @@ export function AppProvider({ children }) {
   const [online, setOnline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
+  const started = useRef(false);
 
   useEffect(() => {
+    if (started.current) return;
+    started.current = true;
     Promise.all(['/products', '/orders', '/tables', '/inventory', '/customers', '/finance', '/dashboard'].map(path => api.get(path)))
       .then(([products, orders, tables, inventory, customers, finance, dashboard]) => {
         setData({ products: products.data, orders: orders.data, tables: tables.data, inventory: inventory.data, customers: customers.data, finance: finance.data, dashboard: dashboard.data });

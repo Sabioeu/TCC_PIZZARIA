@@ -25,7 +25,7 @@ cd pizza_integrador\pizza\pizza
 .\mvnw.cmd spring-boot:run
 ```
 
-A API inicia em `http://localhost:8080`. A documentação interativa fica em `http://localhost:8080/swagger-ui.html`.
+A API inicia em `http://localhost:8081`. A documentação interativa fica em `http://localhost:8081/swagger-ui.html`.
 
 O perfil padrão usa H2 em memória. Para PostgreSQL, ative o perfil `prod` e informe `DATABASE_URL`, `DATABASE_USERNAME` e `DATABASE_PASSWORD`.
 

@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -22,6 +23,12 @@ class PizzaApplicationTests {
     @Test void dashboardAndCatalogAreAvailable() throws Exception {
         mvc.perform(get("/api/dashboard")).andExpect(status().isOk()).andExpect(jsonPath("$.revenueToday").exists());
         mvc.perform(get("/api/products")).andExpect(status().isOk()).andExpect(jsonPath("$[0].name").value("Margherita Suprema"));
+    }
+
+    @Test void allowsRequestsFromTheLocalFrontend() throws Exception {
+        mvc.perform(get("/api/products").header("Origin", "http://localhost:3000"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"));
     }
 
     @Test void createsAnOrderAndCalculatesItsTotal() throws Exception {
