@@ -13,6 +13,9 @@ public class InventoryItem {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false)
+    @Builder.Default
+    private Long branchId = 1L;
+    @Column(nullable = false)
     private String name;
     private String unit;
     @Column(nullable = false, precision = 12, scale = 3)
@@ -20,5 +23,10 @@ public class InventoryItem {
     @Column(nullable = false, precision = 12, scale = 3)
     private BigDecimal minimumQuantity;
     private String supplier;
+    private Long supplierId;
+    private String barcode;
+    @Builder.Default
+    @Column(precision = 12, scale = 4)
+    private BigDecimal costPerUnit = BigDecimal.ZERO;
     private LocalDate expiresAt;
 }

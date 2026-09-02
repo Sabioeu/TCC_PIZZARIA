@@ -44,3 +44,66 @@ export const demoDashboard = {
   weeklyRevenue: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((label, i) => ({ label, value: [3920, 4580, 4210, 5380, 6840, 8920, 6342][i] })),
   channelMix: [{ label: 'Salão', value: 46 }, { label: 'Delivery', value: 38 }, { label: 'Retirada', value: 16 }],
 };
+
+export const demoBranches = [
+  { id: 1, code: 'JARDINS', name: 'Aurora Jardins', address: 'Alameda dos Sabores, 188 · São Paulo, SP', active: true },
+  { id: 2, code: 'PINHEIROS', name: 'Aurora Pinheiros', address: 'Rua dos Pinheiros, 874 · São Paulo, SP', active: true },
+];
+
+export const demoReservations = [
+  { id: 1, tableId: 6, tableNumber: 6, customerId: 2, customerName: 'Rafael Almeida', phone: '(11) 98831-4402', reservedFor: new Date(Date.now() + 3 * 3600000).toISOString(), partySize: 4, status: 'CONFIRMED', notes: 'Aniversário' },
+];
+
+export const demoSuppliers = [
+  { id: 1, name: 'Casa do Padeiro', document: '11.222.333/0001-40', contactName: 'Caio', phone: '(11) 3030-4411', leadTimeDays: 2, active: true },
+  { id: 2, name: 'Laticínios Aurora', document: '22.333.444/0001-51', contactName: 'Lívia', phone: '(11) 3030-5522', leadTimeDays: 1, active: true },
+  { id: 3, name: 'Empório Itália', document: '33.444.555/0001-62', contactName: 'Marco', phone: '(11) 3030-6633', leadTimeDays: 3, active: true },
+];
+
+export const demoPurchases = [
+  { id: 1, code: 'PC-DEMO-JARDINS', supplierId: 2, supplierName: 'Laticínios Aurora', status: 'SENT', expectedDate: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), total: 756, createdAt: new Date().toISOString(), items: [{ inventoryItemId: 2, inventoryItemName: 'Mozzarella fior di latte', quantity: 18, unitCost: 42, lineTotal: 756 }] },
+];
+
+export const demoStockMovements = [
+  { id: 1, inventoryItemId: 1, inventoryItemName: 'Farinha italiana 00', type: 'PURCHASE', quantity: 25, balanceAfter: 42.5, reason: 'Recebimento de compra', performedBy: 'admin@aurora.pizza', createdAt: new Date(Date.now() - 86400000).toISOString() },
+  { id: 2, inventoryItemId: 2, inventoryItemName: 'Mozzarella fior di latte', type: 'SALE', quantity: -0.36, balanceAfter: 8.4, reason: 'Baixa automática por ficha técnica', referenceCode: 'A0018', performedBy: 'system', createdAt: new Date(Date.now() - 3600000).toISOString() },
+];
+
+export const demoCash = {
+  status: 'OPEN', expectedCash: 400,
+  session: { id: 1, status: 'OPEN', openingAmount: 300, openedBy: 'admin@aurora.pizza', openedAt: new Date(Date.now() - 5 * 3600000).toISOString() },
+  totals: { sales: 0, cashSales: 0, supplies: 100, outflows: 0 },
+  movements: [{ id: 1, type: 'SUPPLY', amount: 100, description: 'Reforço de troco', paymentMethod: 'Dinheiro', performedBy: 'admin@aurora.pizza', createdAt: new Date(Date.now() - 2 * 3600000).toISOString() }],
+};
+
+export const demoSettings = {
+  id: 1, tradeName: 'Aurora Pizza Contemporânea', document: '12.345.678/0001-90', phone: '(11) 3456-7890', address: 'Alameda dos Sabores, 188 · São Paulo, SP',
+  serviceFeePercent: 10, minimumDeliveryOrder: 35, defaultDeliveryFee: 8, averagePrepMinutes: 35, maxDeliveryRadiusKm: 8,
+  automaticAcceptance: true, allowNotes: true, printTicket: false, pixEnabled: true, cardEnabled: true, cashEnabled: true, pixKey: 'financeiro@aurorapizza.com.br',
+};
+
+export const demoCoupons = [
+  { id: 1, code: 'AURORA10', description: '10% de boas-vindas', type: 'PERCENT', value: 10, active: true },
+  { id: 2, code: 'FAMILIA15', description: 'R$ 15 para pedidos em família', type: 'FIXED', value: 15, active: true },
+];
+
+export const demoIntelligence = {
+  revenue: 42890.4, productCost: 13467.58, expenses: 2734.3, grossProfit: 29422.82, netResult: 26688.52, cmvPercent: 31.4, grossMarginPercent: 68.6,
+  menuEngineering: demoProducts.slice(0, 6).map((p, index) => ({ name: p.name, quantity: [184, 162, 149, 121, 98, 84][index], revenue: p.price * [184, 162, 149, 121, 98, 84][index], contribution: (p.price - p.cost) * [184, 162, 149, 121, 98, 84][index], classification: index < 2 ? 'ESTRELA' : index < 4 ? 'POPULAR' : 'OPORTUNIDADE' })),
+  hourlyDemand: ['11h', '12h', '13h', '14h', '18h', '19h', '20h', '21h', '22h', '23h'].map((hour, index) => ({ hour, orders: [4, 12, 9, 3, 8, 21, 31, 27, 16, 6][index] })),
+  forecast: Array.from({ length: 7 }, (_, index) => ({ date: new Date(Date.now() + (index + 1) * 86400000).toISOString().slice(0, 10), projectedRevenue: [6200, 6450, 7100, 8950, 9680, 7440, 5820][index], projectedOrders: [72, 75, 82, 102, 111, 86, 68][index] })),
+  purchaseSuggestions: demoInventory.filter(x => Number(x.quantity) <= Number(x.minimumQuantity)).map(x => ({ inventoryItemId: x.id, name: x.name, current: x.quantity, suggestedQuantity: Math.max(0, x.minimumQuantity * 3 - x.quantity), supplier: x.supplier })),
+  alerts: [{ level: 'warning', title: 'Risco de ruptura', message: '3 insumos precisam de reposição' }, { level: 'success', title: 'Previsão de demanda', message: 'Prepare 28% mais massa para sexta e sábado' }],
+};
+
+export const demoUsers = [
+  { id: 1, name: 'Davi Fernandes', email: 'admin@aurora.pizza', role: 'ADMIN', active: true },
+  { id: 2, name: 'Marina Costa', email: 'gerente@aurora.pizza', role: 'MANAGER', active: true },
+  { id: 3, name: 'João Silva', email: 'cozinha@aurora.pizza', role: 'KITCHEN', active: true },
+  { id: 4, name: 'Ana Lima', email: 'caixa@aurora.pizza', role: 'CASHIER', active: true },
+];
+
+export const demoAudit = [
+  { id: 1, actor: 'admin@aurora.pizza', action: 'OPEN', entityType: 'CASH_SESSION', entityId: '1', details: 'Fundo R$ 300,00', createdAt: new Date(Date.now() - 5 * 3600000).toISOString() },
+  { id: 2, actor: 'gerente@aurora.pizza', action: 'UPDATE_RECIPE', entityType: 'PRODUCT', entityId: '2', details: '4 componentes', createdAt: new Date(Date.now() - 2 * 3600000).toISOString() },
+];

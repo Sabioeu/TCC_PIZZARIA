@@ -1,9 +1,0 @@
-import Icon from '../components/Icon';
-import { PageHeader, Status } from '../components/UI';
-import { useApp } from '../context/AppContext';
-
-const cycle = { AVAILABLE: 'RESERVED', RESERVED: 'OCCUPIED', OCCUPIED: 'CLEANING', CLEANING: 'AVAILABLE' };
-export default function TablesPage() {
-  const { tables, setTableStatus } = useApp();
-  return <div className="page-stack"><PageHeader eyebrow="Mapa operacional" title="Mesas & salão" description="Acompanhe ocupação, reservas e giro do salão em tempo real."><button className="button"><Icon name="plus" />Nova reserva</button></PageHeader><div className="summary-grid"><div className="summary-card success"><small>Disponíveis</small><strong>{tables.filter(t => t.status === 'AVAILABLE').length}</strong></div><div className="summary-card danger"><small>Ocupadas</small><strong>{tables.filter(t => t.status === 'OCCUPIED').length}</strong></div><div className="summary-card warning"><small>Ocupação</small><strong>{Math.round(tables.filter(t => t.status === 'OCCUPIED').length / tables.length * 100)}%</strong></div></div><section className="panel floor-panel"><div className="floor-legend"><span><i className="available" />Disponível</span><span><i className="occupied" />Ocupada</span><span><i className="reserved" />Reservada</span><span className="floor-hint">Clique em uma mesa para avançar o status</span></div><div className="tables-grid">{tables.map(t => <button className={`table-card ${t.status.toLowerCase()}`} key={t.id} onClick={() => setTableStatus(t.id, cycle[t.status] || 'AVAILABLE')}><span className="table-icon"><Icon name="table" /></span><span className="table-number">Mesa {String(t.number).padStart(2, '0')}</span><span className="table-meta">{t.area} · {t.seats} lugares</span><span className="table-status"><Status value={t.status} /></span></button>)}</div></section></div>;
-}

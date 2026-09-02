@@ -14,6 +14,9 @@ public class FinanceEntry {
     public enum Status { PAID, PENDING, OVERDUE }
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(nullable = false)
+    @Builder.Default
+    private Long branchId = 1L;
     private String description;
     private String category;
     @Enumerated(EnumType.STRING)
@@ -23,4 +26,7 @@ public class FinanceEntry {
     @Column(precision = 12, scale = 2)
     private BigDecimal amount;
     private LocalDate dueDate;
+    private LocalDate paidAt;
+    private String paymentMethod;
+    private String referenceCode;
 }

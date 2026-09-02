@@ -1,0 +1,11 @@
+**/target/
+**/node_modules/
+**/build/
+**/dist/
+**/data/*.mv.db
+**/data/*.trace.db
+**/data/*.lock.db
+**/.env
+.idea/
+.vscode/
+*.log

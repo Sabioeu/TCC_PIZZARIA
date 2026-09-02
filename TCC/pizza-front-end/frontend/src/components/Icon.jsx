@@ -16,6 +16,20 @@ const paths = {
   clock: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20M12 6v6l4 2'],
   arrow: ['M5 12h14M14 7l5 5-5 5'], check: ['M5 12l4 4L19 6'],
   trend: ['M3 17l6-6 4 4 8-8M16 7h5v5'], store: ['M4 10v10h16V10M3 4h18l-1 6H4z'],
+  lock: ['M6 10V7a6 6 0 0 1 12 0v3M5 10h14v11H5zM12 14v3'],
+  shield: ['M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6zM9 12l2 2 4-5'],
+  alert: ['M12 3 2 21h20zM12 9v5M12 18h.01'],
+  logout: ['M10 17l5-5-5-5M15 12H3M14 4h6v16h-6'],
+  cash: ['M3 6h18v12H3zM7 12h.01M17 12h.01M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6'],
+  truck: ['M3 5h11v11H3zM14 9h4l3 4v3h-7zM7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4M18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4'],
+  calendar: ['M4 5h16v16H4zM8 3v4M16 3v4M4 10h16'],
+  supplier: ['M3 21V8l6-4v17M9 10l6-3v14M15 12l6-3v12M6 11h.01M12 12h.01M18 14h.01'],
+  qr: ['M3 3h7v7H3zM5 5v3h3V5zM14 3h7v7h-7zM16 5v3h3V5zM3 14h7v7H3zM5 16v3h3v-3zM14 14h3v3h-3zM18 14h3M18 18h3v3M14 18v3h3'],
+  refresh: ['M20 7v5h-5M4 17v-5h5M6.1 8a7 7 0 0 1 11.7-2L20 9M4 15l2.2 3A7 7 0 0 0 18 16'],
+  download: ['M12 3v12M7 10l5 5 5-5M4 21h16'],
+  sparkles: ['M12 3l1.4 4.1L17 9l-3.6 1.9L12 15l-1.4-4.1L7 9l3.6-1.9zM19 15l.7 2.2L22 18l-2.3.8L19 21l-.7-2.2L16 18l2.3-.8zM5 13l.7 2.2L8 16l-2.3.8L5 19l-.7-2.2L2 16l2.3-.8z'],
+  eye: ['M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6'],
+  edit: ['M4 20h4L19 9l-4-4L4 16zM13 7l4 4'],
 };
 
 export default function Icon({ name, size = 20 }) {
