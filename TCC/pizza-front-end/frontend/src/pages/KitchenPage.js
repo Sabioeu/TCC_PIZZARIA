@@ -1,0 +1,13 @@
+import { useEffect, useState } from 'react';
+import Icon from '../components/Icon';
+import { PageHeader, Status } from '../components/UI';
+import { labels, useApp } from '../context/AppContext';
+
+const next = { RECEIVED: 'PREPARING', PREPARING: 'READY', READY: 'COMPLETED' };
+export default function KitchenPage() {
+  const { orders, setOrderStatus } = useApp(); const [, tick] = useState(0); const [filter, setFilter] = useState('ACTIVE');
+  useEffect(() => { const id = setInterval(() => tick(x => x + 1), 60000); return () => clearInterval(id); }, []);
+  const list = orders.filter(o => filter === 'ACTIVE' ? !['COMPLETED', 'CANCELED'].includes(o.status) : o.status === filter);
+  const age = date => Math.max(1, Math.round((Date.now() - new Date(date).getTime()) / 60000));
+  return <div className="page-stack"><PageHeader eyebrow="Produção ao vivo" title="Kitchen Display System" description="Fila de preparo sincronizada com o salão, balcão e delivery."><div className="live-indicator"><i /> AO VIVO</div></PageHeader><div className="kds-toolbar"><div className="tabs">{[['ACTIVE', 'Todos'], ['RECEIVED', 'Recebidos'], ['PREPARING', 'Em preparo'], ['READY', 'Prontos']].map(x => <button className={`tab ${filter === x[0] ? 'active' : ''}`} onClick={() => setFilter(x[0])} key={x[0]}>{x[1]} <b>{orders.filter(o => x[0] === 'ACTIVE' ? !['COMPLETED', 'CANCELED'].includes(o.status) : o.status === x[0]).length}</b></button>)}</div><span className="kds-average"><Icon name="clock" />Tempo médio hoje <strong>14 min</strong></span></div><div className="kds-grid">{list.map(order => { const minutes = age(order.createdAt); return <article className={`kds-card ${order.status.toLowerCase()} ${minutes > 24 ? 'late' : ''}`} key={order.id}><header><div><span className="kds-code">{order.code}</span><span className="kds-channel">{labels[order.type]} {order.tableNumber ? `• Mesa ${order.tableNumber}` : ''}</span></div><div className="kds-time"><Icon name="clock" /><strong>{minutes} min</strong></div></header><div className="kds-customer">{order.customerName}</div><ul>{order.items?.map((item, i) => <li key={i}><b>{item.quantity}×</b><span>{item.productName}</span></li>)}</ul>{order.notes && <p className="kds-note">Obs: {order.notes}</p>}<footer><Status value={order.status} />{next[order.status] && <button className="button button-dark button-sm" onClick={() => setOrderStatus(order.id, next[order.status])}>{order.status === 'READY' ? 'Entregar pedido' : order.status === 'PREPARING' ? 'Marcar como pronto' : 'Iniciar preparo'}<Icon name="arrow" /></button>}</footer></article>; })}</div></div>;
+}
