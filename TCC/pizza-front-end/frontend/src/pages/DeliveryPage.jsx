@@ -13,6 +13,7 @@ export default function DeliveryPage() {
 }
 
 function DeliveryCard({ order, action, onAction }) {
-  return <article><div className="delivery-code"><span>{order.code}</span><Status value={order.status} /></div><h3>{order.customerName}</h3><p><Icon name="truck" />{order.deliveryAddress || 'Endereço não informado'}</p><small>{order.customerPhone || 'Telefone não informado'} · {money(order.total)}</small><button type="button" className="button button-primary" onClick={onAction}>{action}<Icon name="arrow" /></button></article>;
+  const openRoute = () => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.deliveryAddress || '')}`, '_blank', 'noopener,noreferrer');
+  return <article><div className="delivery-code"><span>{order.code}</span><Status value={order.status} /></div><h3>{order.customerName}</h3><p><Icon name="truck" />{order.deliveryAddress || 'Endereço não informado'}</p><small>{order.customerPhone || 'Telefone não informado'} · {money(order.total)}</small><div className="delivery-actions"><button type="button" className="button button-sm" disabled={!order.deliveryAddress} onClick={openRoute}>Abrir rota</button><button type="button" className="button button-primary" onClick={onAction}>{action}<Icon name="arrow" /></button></div></article>;
 }
 function Empty({ text }) { return <div className="automation-empty"><Icon name="check" /><strong>Fila em dia</strong><span>{text}</span></div>; }

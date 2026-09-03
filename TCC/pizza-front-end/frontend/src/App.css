@@ -1567,3 +1567,6 @@ p {
 @media print {
   .sidebar,.topbar,.page-actions,.offline-banner,.toast { display: none!important; }.app-main { width: 100%; margin: 0; }.content-area { max-width: none; padding: 0; }.page-stack { gap: 12px; }.panel,.report-kpis article,.finance-hero { box-shadow: none; break-inside: avoid; }
 }
+/* Delivery route actions */
+.delivery-actions { display:grid; grid-template-columns:1fr 1.35fr; gap:8px; }
+.delivery-actions .button { width:100%; justify-content:center; }

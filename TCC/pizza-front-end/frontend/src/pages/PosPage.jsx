@@ -5,6 +5,14 @@ import { money, useApp } from '../context/AppContext';
 
 const modifierOptions = [['Borda de catupiry', 10], ['Extra mozzarella', 8], ['Bacon crocante', 9], ['Azeitonas', 4], ['Sem lactose', 7]];
 const paymentMethods = ['PIX', 'Cartão de crédito', 'Cartão de débito', 'Dinheiro', 'Vale-refeição'];
+const ticketText = value => String(value || '').replace(/[&<>]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[character]));
+function printTicket(order) {
+  const popup = window.open('', '_blank', 'width=380,height=620');
+  if (!popup) return false;
+  const lines = (order.items || []).map(item => `<tr><td>${item.quantity}× ${ticketText(item.productName || item.name)}</td><td>R$ ${Number(item.lineTotal || item.unitPrice * item.quantity || 0).toFixed(2).replace('.', ',')}</td></tr>`).join('');
+  popup.document.write(`<!doctype html><html lang="pt-BR"><head><title>Comanda ${ticketText(order.code)}</title><style>body{font:13px Arial;padding:18px;color:#111}h1{font-size:20px;margin:0 0 5px}p{margin:4px 0;color:#555}table{width:100%;border-collapse:collapse;margin:16px 0}td{padding:7px 0;border-bottom:1px dashed #bbb}td:last-child{text-align:right}strong{font-size:16px}.footer{margin-top:22px;text-align:center;font-size:11px}</style></head><body><h1>Aurora Pizza</h1><p>Pedido ${ticketText(order.code)} · ${new Date(order.createdAt || Date.now()).toLocaleString('pt-BR')}</p><p>${ticketText(order.customerName || 'Cliente balcão')} · ${ticketText(order.type || '')}</p><table>${lines}</table><p><strong>Total: R$ ${Number(order.total || 0).toFixed(2).replace('.', ',')}</strong></p><p>Pagamento: ${ticketText(order.paymentMethod)}</p><p class="footer">Obrigado pela preferência! 🍕</p><script>window.onload=()=>window.print()<\/script></body></html>`);
+  popup.document.close(); return true;
+}
 
 export default function PosPage() {
   const { products, tables, customers, settings, createOrder, validateCoupon } = useApp();
@@ -42,7 +50,8 @@ export default function PosPage() {
     event.preventDefault(); if (!cart.length || (type === 'DELIVERY' && !deliveryAddress.trim())) return;
     setSending(true);
     try {
-      await createOrder({ type, tableNumber: type === 'DINE_IN' ? Number(tableNumber) : null, customerId: customerId ? Number(customerId) : null, customerName, customerPhone, deliveryAddress: type === 'DELIVERY' ? deliveryAddress : null, couponCode: couponResult?.code || null, deliveryFee, serviceFee, notes: orderNotes, items: cart.map(({ productId, halfProductId, quantity, variantName, modifiers, notes }) => ({ productId, halfProductId, quantity, variantName, modifiers, notes })), payments: payments.map(item => ({ ...item, amount: Number(item.amount) })) });
+      const created = await createOrder({ type, tableNumber: type === 'DINE_IN' ? Number(tableNumber) : null, customerId: customerId ? Number(customerId) : null, customerName, customerPhone, deliveryAddress: type === 'DELIVERY' ? deliveryAddress : null, couponCode: couponResult?.code || null, deliveryFee, serviceFee, notes: orderNotes, items: cart.map(({ productId, halfProductId, quantity, variantName, modifiers, notes }) => ({ productId, halfProductId, quantity, variantName, modifiers, notes })), payments: payments.map(item => ({ ...item, amount: Number(item.amount) })) });
+      if (settings?.printTicket && !printTicket(created)) window.alert('A comanda está pronta, mas o navegador bloqueou a janela de impressão. Libere pop-ups para este endereço.');
       setCart([]); setCustomerId(''); setCustomerName(''); setCustomerPhone(''); setDeliveryAddress(''); setCoupon(''); setCouponResult(null); setOrderNotes(''); setCheckout(false);
     } finally { setSending(false); }
   };
