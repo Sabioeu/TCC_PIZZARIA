@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -23,5 +24,10 @@ public class ApiExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     ProblemDetail unauthorized(BadCredentialsException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.getMessage());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    ProblemDetail forbidden(AccessDeniedException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, exception.getMessage());
     }
 }

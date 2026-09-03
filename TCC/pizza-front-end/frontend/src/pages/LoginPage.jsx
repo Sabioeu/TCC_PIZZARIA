@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 
 const profiles = [
   ['Administrador', 'admin@aurora.pizza'], ['Gerente', 'gerente@aurora.pizza'],
-  ['Cozinha', 'cozinha@aurora.pizza'], ['Caixa', 'caixa@aurora.pizza'],
+  ['Cozinha', 'cozinha@aurora.pizza'], ['Caixa', 'caixa@aurora.pizza'], ['Entregador', 'entregador@aurora.pizza'],
 ];
 
 export default function LoginPage() {

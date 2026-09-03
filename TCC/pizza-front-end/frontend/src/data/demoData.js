@@ -101,6 +101,7 @@ export const demoUsers = [
   { id: 2, name: 'Marina Costa', email: 'gerente@aurora.pizza', role: 'MANAGER', active: true },
   { id: 3, name: 'João Silva', email: 'cozinha@aurora.pizza', role: 'KITCHEN', active: true },
   { id: 4, name: 'Ana Lima', email: 'caixa@aurora.pizza', role: 'CASHIER', active: true },
+  { id: 5, name: 'Carlos Souza', email: 'entregador@aurora.pizza', role: 'DELIVERY', active: true },
 ];
 
 export const demoAudit = [

@@ -5,9 +5,9 @@ import { labels, useApp } from '../context/AppContext';
 
 const sections = [
   { label: 'Operação', items: [
-    ['/', 'grid', 'Visão geral', ['ADMIN','MANAGER','CASHIER','KITCHEN','WAITER']], ['/pdv', 'cart', 'Novo pedido', ['ADMIN','MANAGER','CASHIER','WAITER']],
+    ['/visao-geral', 'grid', 'Visão geral', ['ADMIN','MANAGER','CASHIER','WAITER']], ['/pdv', 'cart', 'Novo pedido', ['ADMIN','MANAGER','CASHIER','WAITER']],
     ['/cozinha', 'chef', 'Cozinha • KDS', ['ADMIN','MANAGER','KITCHEN']], ['/pedidos', 'receipt', 'Pedidos', ['ADMIN','MANAGER','CASHIER','KITCHEN','WAITER']],
-    ['/mesas', 'table', 'Mesas & reservas', ['ADMIN','MANAGER','CASHIER','WAITER']], ['/caixa', 'cash', 'Caixa', ['ADMIN','MANAGER','CASHIER']],
+    ['/entregas', 'truck', 'Minhas entregas', ['ADMIN','MANAGER','DELIVERY']], ['/mesas', 'table', 'Mesas & reservas', ['ADMIN','MANAGER','CASHIER','WAITER']], ['/caixa', 'cash', 'Caixa', ['ADMIN','MANAGER','CASHIER']],
   ] },
   { label: 'Gestão', items: [
     ['/cardapio', 'pizza', 'Cardápio & fichas', ['ADMIN','MANAGER']], ['/estoque', 'boxes', 'Estoque', ['ADMIN','MANAGER','KITCHEN']],
@@ -17,7 +17,7 @@ const sections = [
   { label: 'Sistema', items: [['/configuracoes', 'settings', 'Configurações', ['ADMIN','MANAGER']], ['/auditoria', 'shield', 'Auditoria', ['ADMIN']]] },
 ];
 const titles = {
-  '/': ['Visão geral', 'Seu negócio, agora'], '/pdv': ['Frente de caixa', 'Venda rápida e personalizada'], '/cozinha': ['Kitchen Display', 'Produção em tempo real'],
+  '/': ['Aurora Pizza', 'Operação segura'], '/visao-geral': ['Visão geral', 'Seu negócio, agora'], '/pdv': ['Frente de caixa', 'Venda rápida e personalizada'], '/cozinha': ['Kitchen Display', 'Produção em tempo real'], '/entregas': ['Minhas entregas', 'Rotas prontas para sair'],
   '/pedidos': ['Pedidos', 'Todos os canais e entregas'], '/mesas': ['Mesas & reservas', 'Salão e autoatendimento'], '/caixa': ['Caixa', 'Conciliação do turno'],
   '/cardapio': ['Cardápio', 'Produtos, tamanhos e fichas técnicas'], '/estoque': ['Estoque inteligente', 'Saldos e rastreabilidade'], '/compras': ['Compras', 'Fornecedores e reposição'],
   '/clientes': ['Clientes', 'CRM e fidelidade'], '/financeiro': ['Financeiro', 'Fluxo de caixa e DRE'], '/comercial': ['Central comercial', 'Cobranças, relacionamento e fiscal'], '/automacoes': ['Automações WhatsApp', 'Mensagens e eventos operacionais'], '/relatorios': ['Aura Intelligence', 'Previsões e decisões'],

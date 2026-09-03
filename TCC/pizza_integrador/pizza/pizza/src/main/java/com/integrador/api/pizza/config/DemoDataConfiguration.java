@@ -40,7 +40,8 @@ public class DemoDataConfiguration {
                     user(jardins.getId(), "Davi Fernandes", "admin@aurora.pizza", "Aurora@2026", AppUser.Role.ADMIN, passwordEncoder),
                     user(jardins.getId(), "Marina Costa", "gerente@aurora.pizza", "Aurora@2026", AppUser.Role.MANAGER, passwordEncoder),
                     user(jardins.getId(), "Joao Silva", "cozinha@aurora.pizza", "Aurora@2026", AppUser.Role.KITCHEN, passwordEncoder),
-                    user(jardins.getId(), "Ana Lima", "caixa@aurora.pizza", "Aurora@2026", AppUser.Role.CASHIER, passwordEncoder)));
+                    user(jardins.getId(), "Ana Lima", "caixa@aurora.pizza", "Aurora@2026", AppUser.Role.CASHIER, passwordEncoder),
+                    user(jardins.getId(), "Carlos Souza", "entregador@aurora.pizza", "Aurora@2026", AppUser.Role.DELIVERY, passwordEncoder)));
             seedBranch(jardins, products, customers, tables, inventory, orders, finance, suppliers, recipes, coupons, purchases, reservations, cashSessions, cashMovements, true);
             seedBranch(pinheiros, products, customers, tables, inventory, orders, finance, suppliers, recipes, coupons, purchases, reservations, cashSessions, cashMovements, false);
         };

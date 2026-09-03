@@ -2,10 +2,13 @@ package com.integrador.api.pizza.web;
 
 import com.integrador.api.pizza.domain.*;
 import com.integrador.api.pizza.service.OperationsService;
+import com.integrador.api.pizza.security.AppPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -38,7 +41,12 @@ public class OperationsController {
 
     @GetMapping("/orders") public List<SaleOrder> orders(@RequestHeader(name = "X-Branch-Id", defaultValue = "1") Long branchId) { return service.orders(branchId); }
     @PostMapping("/orders") @ResponseStatus(HttpStatus.CREATED) public SaleOrder order(@RequestHeader(name = "X-Branch-Id", defaultValue = "1") Long branchId, @RequestBody OperationsService.CreateOrder body) { return service.createOrder(branchId, body); }
-    @PatchMapping("/orders/{id}/status") public SaleOrder status(@RequestHeader(name = "X-Branch-Id", defaultValue = "1") Long branchId, @PathVariable Long id, @RequestBody StatusRequest<SaleOrder.Status> body) { return service.updateOrderStatus(branchId, id, body.status()); }
+    @PatchMapping("/orders/{id}/status") public SaleOrder status(@RequestHeader(name = "X-Branch-Id", defaultValue = "1") Long branchId, @PathVariable Long id, @RequestBody StatusRequest<SaleOrder.Status> body,
+                                                                   @AuthenticationPrincipal AppPrincipal principal) {
+        if (principal.role() == AppUser.Role.DELIVERY && body.status() != SaleOrder.Status.DELIVERED) throw new AccessDeniedException("Entregador pode apenas confirmar entregas");
+        if (principal.role() == AppUser.Role.KITCHEN && body.status() != SaleOrder.Status.PREPARING && body.status() != SaleOrder.Status.READY && body.status() != SaleOrder.Status.OUT_FOR_DELIVERY) throw new AccessDeniedException("Cozinha pode atualizar apenas etapas de produção");
+        return service.updateOrderStatus(branchId, id, body.status());
+    }
     @PostMapping("/coupons/validate") public OperationsService.CouponResult coupon(@RequestHeader(name = "X-Branch-Id", defaultValue = "1") Long branchId, @RequestBody CouponRequest body) { return service.validateCoupon(branchId, body.code(), body.subtotal()); }
     @GetMapping("/coupons") public List<Coupon> coupons(@RequestHeader(name = "X-Branch-Id", defaultValue = "1") Long branchId) { return service.coupons(branchId); }
 

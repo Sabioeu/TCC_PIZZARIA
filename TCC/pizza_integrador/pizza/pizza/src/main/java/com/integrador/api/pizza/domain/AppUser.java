@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Table(name = "app_users")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class AppUser {
-    public enum Role { ADMIN, MANAGER, CASHIER, KITCHEN, WAITER }
+    public enum Role { ADMIN, MANAGER, CASHIER, KITCHEN, WAITER, DELIVERY }
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

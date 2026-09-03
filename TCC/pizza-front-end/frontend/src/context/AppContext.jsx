@@ -15,7 +15,7 @@ export const labels = {
   PAID: 'Pago', PENDING: 'Pendente', OVERDUE: 'Vencido', DINE_IN: 'Salão', DELIVERY: 'Delivery', PICKUP: 'Retirada',
   CONFIRMED: 'Confirmada', SEATED: 'Cliente à mesa', NO_SHOW: 'Não compareceu', DRAFT: 'Rascunho', SENT: 'Enviado', PARTIALLY_RECEIVED: 'Recebido parcial',
   PURCHASE: 'Compra', SALE: 'Venda', ADJUSTMENT: 'Ajuste', WASTE: 'Perda', RETURN: 'Devolução', SUPPLY: 'Suprimento', WITHDRAWAL: 'Sangria', REFUND: 'Estorno',
-  ADMIN: 'Administrador', MANAGER: 'Gerente', CASHIER: 'Caixa', KITCHEN: 'Cozinha', WAITER: 'Garçom', EARN: 'Crédito', REDEEM: 'Resgate',
+  ADMIN: 'Administrador', MANAGER: 'Gerente', CASHIER: 'Caixa', KITCHEN: 'Cozinha', WAITER: 'Garçom', DELIVERY: 'Entregador', EARN: 'Crédito', REDEEM: 'Resgate',
 };
 
 const variants = [
