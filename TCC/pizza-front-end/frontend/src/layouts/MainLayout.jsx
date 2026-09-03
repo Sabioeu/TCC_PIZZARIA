@@ -12,7 +12,7 @@ const sections = [
   { label: 'Gestão', items: [
     ['/cardapio', 'pizza', 'Cardápio & fichas', ['ADMIN','MANAGER']], ['/estoque', 'boxes', 'Estoque', ['ADMIN','MANAGER','KITCHEN']],
     ['/compras', 'supplier', 'Compras', ['ADMIN','MANAGER']], ['/clientes', 'users', 'Clientes & CRM', ['ADMIN','MANAGER','CASHIER']],
-    ['/financeiro', 'wallet', 'Financeiro', ['ADMIN','MANAGER']], ['/relatorios', 'chart', 'Inteligência', ['ADMIN','MANAGER']],
+    ['/financeiro', 'wallet', 'Financeiro', ['ADMIN','MANAGER']], ['/comercial', 'sparkles', 'Central comercial', ['ADMIN','MANAGER','CASHIER']], ['/relatorios', 'chart', 'Inteligência', ['ADMIN','MANAGER']],
   ] },
   { label: 'Sistema', items: [['/configuracoes', 'settings', 'Configurações', ['ADMIN','MANAGER']], ['/auditoria', 'shield', 'Auditoria', ['ADMIN']]] },
 ];
@@ -20,7 +20,7 @@ const titles = {
   '/': ['Visão geral', 'Seu negócio, agora'], '/pdv': ['Frente de caixa', 'Venda rápida e personalizada'], '/cozinha': ['Kitchen Display', 'Produção em tempo real'],
   '/pedidos': ['Pedidos', 'Todos os canais e entregas'], '/mesas': ['Mesas & reservas', 'Salão e autoatendimento'], '/caixa': ['Caixa', 'Conciliação do turno'],
   '/cardapio': ['Cardápio', 'Produtos, tamanhos e fichas técnicas'], '/estoque': ['Estoque inteligente', 'Saldos e rastreabilidade'], '/compras': ['Compras', 'Fornecedores e reposição'],
-  '/clientes': ['Clientes', 'CRM e fidelidade'], '/financeiro': ['Financeiro', 'Fluxo de caixa e DRE'], '/relatorios': ['Aura Intelligence', 'Previsões e decisões'],
+  '/clientes': ['Clientes', 'CRM e fidelidade'], '/financeiro': ['Financeiro', 'Fluxo de caixa e DRE'], '/comercial': ['Central comercial', 'Cobranças, relacionamento e fiscal'], '/relatorios': ['Aura Intelligence', 'Previsões e decisões'],
   '/configuracoes': ['Configurações', 'Personalize sua operação'], '/auditoria': ['Auditoria', 'Integridade e conformidade'],
 };
 

@@ -94,6 +94,19 @@ class PizzaApplicationTests {
                 .andExpect(jsonPath("$.tableNumber").value(table.getNumber()));
     }
 
+    @Test void createsTraceablePixChargeAndProtectsCommerceEndpoints() throws Exception {
+        mvc.perform(get("/api/commerce/charges")).andExpect(status().isForbidden());
+        String token = token("admin@aurora.pizza");
+        MvcResult order = mvc.perform(post("/api/orders").header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"type\":\"PICKUP\",\"items\":[{\"productId\":1,\"quantity\":1,\"variantName\":\"Grande\",\"modifiers\":[]}]}") )
+                .andExpect(status().isCreated()).andReturn();
+        long orderId = mapper.readTree(order.getResponse().getContentAsString()).get("id").asLong();
+        mvc.perform(post("/api/commerce/pix").header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"orderId\":" + orderId + "}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.pixCopyPaste").isNotEmpty());
+    }
+
     private String token(String email) throws Exception {
         MvcResult login = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(new Login(email, "Aurora@2026"))))

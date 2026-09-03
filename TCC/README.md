@@ -60,3 +60,7 @@ npm run build
 ```
 
 O projeto usa migrações Flyway, autenticação JWT com perfis de acesso, isolamento por unidade, WebSocket autenticado por filial e fila local de pedidos para tolerar quedas temporárias da API.
+
+## Central comercial
+
+O menu **Central comercial** reúne cobrança PIX por pedido (QR Code e código copia e cola), uma fila auditável de WhatsApp/CRM, preparação de NFC-e e exportação de backup operacional. Os conectores foram projetados para receber credenciais de provedores como Mercado Pago, WhatsApp Business e emissor fiscal sem expor segredos no navegador. A ativação de envio/cobrança/emissão real exige as credenciais e homologação da empresa.
