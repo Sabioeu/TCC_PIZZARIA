@@ -7,21 +7,21 @@ const sections = [
   { label: 'Operação', items: [
     ['/visao-geral', 'grid', 'Visão geral', ['ADMIN','MANAGER','CASHIER','WAITER']], ['/pdv', 'cart', 'Novo pedido', ['ADMIN','MANAGER','CASHIER','WAITER']],
     ['/cozinha', 'chef', 'Cozinha • KDS', ['ADMIN','MANAGER','KITCHEN']], ['/pedidos', 'receipt', 'Pedidos', ['ADMIN','MANAGER','CASHIER','KITCHEN','WAITER']],
-    ['/entregas', 'truck', 'Minhas entregas', ['ADMIN','MANAGER','DELIVERY']], ['/mesas', 'table', 'Mesas & reservas', ['ADMIN','MANAGER','CASHIER','WAITER']], ['/caixa', 'cash', 'Caixa', ['ADMIN','MANAGER','CASHIER']],
+    ['/entregas', 'truck', 'Minhas entregas', ['ADMIN','MANAGER','DELIVERY']], ['/jornada', 'clock', 'Minha jornada', ['ADMIN','MANAGER','CASHIER','KITCHEN','WAITER','DELIVERY']], ['/mesas', 'table', 'Mesas & reservas', ['ADMIN','MANAGER','CASHIER','WAITER']], ['/caixa', 'cash', 'Caixa', ['ADMIN','MANAGER','CASHIER']],
   ] },
   { label: 'Gestão', items: [
     ['/cardapio', 'pizza', 'Cardápio & fichas', ['ADMIN','MANAGER']], ['/estoque', 'boxes', 'Estoque', ['ADMIN','MANAGER','KITCHEN']],
     ['/compras', 'supplier', 'Compras', ['ADMIN','MANAGER']], ['/clientes', 'users', 'Clientes & CRM', ['ADMIN','MANAGER','CASHIER']],
-    ['/financeiro', 'wallet', 'Financeiro', ['ADMIN','MANAGER']], ['/comercial', 'sparkles', 'Central comercial', ['ADMIN','MANAGER','CASHIER']], ['/automacoes', 'bell', 'Automações WhatsApp', ['ADMIN','MANAGER']], ['/relatorios', 'chart', 'Inteligência', ['ADMIN','MANAGER']],
+    ['/financeiro', 'wallet', 'Financeiro', ['ADMIN','MANAGER']], ['/comercial', 'sparkles', 'Central comercial', ['ADMIN','MANAGER','CASHIER']], ['/automacoes', 'bell', 'Automações WhatsApp', ['ADMIN','MANAGER']], ['/avaliacoes', 'sparkles', 'Experiência & qualidade', ['ADMIN','MANAGER']], ['/relatorios', 'chart', 'Inteligência', ['ADMIN','MANAGER']],
   ] },
-  { label: 'Sistema', items: [['/configuracoes', 'settings', 'Configurações', ['ADMIN','MANAGER']], ['/auditoria', 'shield', 'Auditoria', ['ADMIN']]] },
+  { label: 'Sistema', items: [['/configuracoes', 'settings', 'Configurações', ['ADMIN','MANAGER']], ['/privacidade', 'lock', 'Privacidade & LGPD', ['ADMIN']], ['/auditoria', 'shield', 'Auditoria', ['ADMIN']]] },
 ];
 const titles = {
-  '/': ['Aurora Pizza', 'Operação segura'], '/visao-geral': ['Visão geral', 'Seu negócio, agora'], '/pdv': ['Frente de caixa', 'Venda rápida e personalizada'], '/cozinha': ['Kitchen Display', 'Produção em tempo real'], '/entregas': ['Minhas entregas', 'Rotas prontas para sair'],
+  '/': ['Aurora Pizza', 'Operação segura'], '/visao-geral': ['Visão geral', 'Seu negócio, agora'], '/pdv': ['Frente de caixa', 'Venda rápida e personalizada'], '/cozinha': ['Kitchen Display', 'Produção em tempo real'], '/entregas': ['Minhas entregas', 'Rotas prontas para sair'], '/jornada': ['Minha jornada', 'Ponto e turnos da equipe'],
   '/pedidos': ['Pedidos', 'Todos os canais e entregas'], '/mesas': ['Mesas & reservas', 'Salão e autoatendimento'], '/caixa': ['Caixa', 'Conciliação do turno'],
   '/cardapio': ['Cardápio', 'Produtos, tamanhos e fichas técnicas'], '/estoque': ['Estoque inteligente', 'Saldos e rastreabilidade'], '/compras': ['Compras', 'Fornecedores e reposição'],
-  '/clientes': ['Clientes', 'CRM e fidelidade'], '/financeiro': ['Financeiro', 'Fluxo de caixa e DRE'], '/comercial': ['Central comercial', 'Cobranças, relacionamento e fiscal'], '/automacoes': ['Automações WhatsApp', 'Mensagens e eventos operacionais'], '/relatorios': ['Aura Intelligence', 'Previsões e decisões'],
-  '/configuracoes': ['Configurações', 'Personalize sua operação'], '/auditoria': ['Auditoria', 'Integridade e conformidade'],
+  '/clientes': ['Clientes', 'CRM e fidelidade'], '/financeiro': ['Financeiro', 'Fluxo de caixa e DRE'], '/comercial': ['Central comercial', 'Cobranças, relacionamento e fiscal'], '/automacoes': ['Automações WhatsApp', 'Mensagens e eventos operacionais'], '/avaliacoes': ['Experiência & qualidade', 'Voz do cliente por pedido'], '/relatorios': ['Aura Intelligence', 'Previsões e decisões'],
+  '/configuracoes': ['Configurações', 'Personalize sua operação'], '/privacidade': ['Privacidade & LGPD', 'Governança dos dados pessoais'], '/auditoria': ['Auditoria', 'Integridade e conformidade'],
 };
 
 export default function MainLayout() {

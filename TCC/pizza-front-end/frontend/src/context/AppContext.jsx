@@ -189,6 +189,13 @@ export function AppProvider({ children }) {
     setData(current => ({ ...current, orders: current.orders.map(order => order.id === id ? { ...order, status } : order) }));
     notify(`Pedido atualizado: ${labels[status]}`); return true;
   };
+  const claimDelivery = async id => {
+    let assigned;
+    try { if (!session?.demo) assigned = (await api.patch(`/orders/${id}/assign-self`)).data; }
+    catch (error) { notify(apiMessage(error)); return false; }
+    setData(current => ({ ...current, orders: current.orders.map(order => order.id === id ? (assigned || { ...order, deliveryDriver: session?.user?.name }) : order) }));
+    notify('Entrega atribuída ao seu usuário'); return true;
+  };
   const setTableStatus = async (id, status) => {
     try { if (!session?.demo) await api.patch(`/tables/${id}/status`, { status }); } catch (error) { if (error?.response) return notify(apiMessage(error)); }
     setData(current => ({ ...current, tables: current.tables.map(table => table.id === id ? { ...table, status } : table) })); notify(`Mesa atualizada: ${labels[status]}`);
@@ -298,7 +305,7 @@ export function AppProvider({ children }) {
     ...data, session, user: session?.user, authenticated: Boolean(session), branchId, online, socketOnline, loading, authLoading,
     toast, lastSync, notifications, unreadNotifications: notificationsReadAt ? 0 : notifications.length,
     login, logout, selectBranch, refresh: () => loadData(branchId), notify, markNotificationsRead: () => setNotificationsReadAt(Date.now()),
-    createOrder, setOrderStatus, setTableStatus, addProduct, updateProduct, saveRecipe, addCustomer, adjustLoyalty,
+    createOrder, setOrderStatus, claimDelivery, setTableStatus, addProduct, updateProduct, saveRecipe, addCustomer, adjustLoyalty,
     adjustStock, createReservation, updateReservation, addFinance, addSupplier, createPurchase, receivePurchase,
     openCash: payload => cashAction('/cash/open', payload), cashMovement: payload => cashAction('/cash/movements', payload),
     closeCash: payload => cashAction('/cash/close', payload), saveSettings, addUser, validateCoupon,

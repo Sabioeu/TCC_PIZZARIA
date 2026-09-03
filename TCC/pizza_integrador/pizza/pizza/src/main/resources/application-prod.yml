@@ -12,3 +12,12 @@ spring:
   h2:
     console:
       enabled: false
+server:
+  forward-headers-strategy: framework
+  error:
+    include-message: never
+aurora:
+  security:
+    jwt-secret: ${AURORA_JWT_SECRET}
+    token-hours: ${AURORA_TOKEN_HOURS:8}
+  demo-data: ${AURORA_DEMO_DATA:false}

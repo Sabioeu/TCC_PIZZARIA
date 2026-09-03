@@ -107,6 +107,58 @@ class PizzaApplicationTests {
                 .andExpect(jsonPath("$.pixCopyPaste").isNotEmpty());
     }
 
+    @Test void registersPersonalShiftAndProtectsTeamHistory() throws Exception {
+        String token = token("caixa@aurora.pizza");
+        MvcResult shift = mvc.perform(post("/api/workforce/clock-in").header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"notes\":\"Turno de teste\"}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.status").value("OPEN")).andReturn();
+        long shiftId = mapper.readTree(shift.getResponse().getContentAsString()).get("id").asLong();
+        mvc.perform(get("/api/workforce/shifts").header(HttpHeaders.AUTHORIZATION, bearer(token))).andExpect(status().isForbidden());
+        mvc.perform(post("/api/workforce/shifts/{id}/clock-out", shiftId).header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CLOSED"));
+    }
+
+    @Test void acceptsOneVerifiedFeedbackPerCompletedOrder() throws Exception {
+        String token = token("admin@aurora.pizza");
+        MvcResult created = mvc.perform(post("/api/orders").header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"type\":\"PICKUP\",\"customerName\":\"Cliente Feedback\",\"items\":[{\"productId\":1,\"quantity\":1,\"variantName\":\"Grande\",\"modifiers\":[]}]}"))
+                .andExpect(status().isCreated()).andReturn();
+        JsonNode order = mapper.readTree(created.getResponse().getContentAsString());
+        mvc.perform(patch("/api/orders/{id}/status", order.get("id").asLong()).header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"COMPLETED\"}"))
+                .andExpect(status().isOk());
+        String feedback = mapper.writeValueAsString(new Feedback(order.get("code").asText(), 5, "Excelente"));
+        mvc.perform(post("/api/public/feedback").contentType(MediaType.APPLICATION_JSON).content(feedback))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.rating").value(5));
+        mvc.perform(post("/api/public/feedback").contentType(MediaType.APPLICATION_JSON).content(feedback))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test void deliveryDriverClaimsAndCompletesOwnWorkflow() throws Exception {
+        String admin = token("admin@aurora.pizza");
+        MvcResult created = mvc.perform(post("/api/orders").header(HttpHeaders.AUTHORIZATION, bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"type\":\"DELIVERY\",\"customerName\":\"Cliente Rota\",\"deliveryAddress\":\"Av Paulista, 1000\",\"items\":[{\"productId\":1,\"quantity\":1,\"variantName\":\"Grande\",\"modifiers\":[]}]}"))
+                .andExpect(status().isCreated()).andReturn();
+        long orderId = mapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+        mvc.perform(patch("/api/orders/{id}/status", orderId).header(HttpHeaders.AUTHORIZATION, bearer(admin)).contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"READY\"}"))
+                .andExpect(status().isOk());
+        String driver = token("entregador@aurora.pizza");
+        mvc.perform(patch("/api/orders/{id}/assign-self", orderId).header(HttpHeaders.AUTHORIZATION, bearer(driver)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.deliveryDriver").value("Carlos Souza"));
+        mvc.perform(patch("/api/orders/{id}/status", orderId).header(HttpHeaders.AUTHORIZATION, bearer(driver)).contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"OUT_FOR_DELIVERY\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(patch("/api/orders/{id}/status", orderId).header(HttpHeaders.AUTHORIZATION, bearer(driver)).contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"DELIVERED\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test void privacyExportIsRestrictedToAdministrators() throws Exception {
+        mvc.perform(get("/api/privacy/customers/1/export").header(HttpHeaders.AUTHORIZATION, bearer(token("caixa@aurora.pizza"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/privacy/customers/1/export").header(HttpHeaders.AUTHORIZATION, bearer(token("admin@aurora.pizza"))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.format").value("AURORA-LGPD-1"));
+    }
+
     private String token(String email) throws Exception {
         MvcResult login = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(new Login(email, "Aurora@2026"))))
@@ -116,4 +168,5 @@ class PizzaApplicationTests {
     }
     private String bearer(String token) { return "Bearer " + token; }
     private record Login(String email, String password) { }
+    private record Feedback(String orderCode, int rating, String comment) { }
 }

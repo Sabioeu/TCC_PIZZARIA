@@ -234,6 +234,21 @@ public class OperationsService {
         return saved;
     }
 
+    @Transactional
+    public SaleOrder assignDelivery(Long branchId, Long id, String driver) {
+        SaleOrder order = orderForBranch(branchId, id);
+        if (order.getType() != SaleOrder.Type.DELIVERY) throw new IllegalArgumentException("Pedido não pertence ao delivery");
+        if (order.getStatus() != SaleOrder.Status.READY && order.getStatus() != SaleOrder.Status.OUT_FOR_DELIVERY)
+            throw new IllegalArgumentException("A entrega ainda não está disponível para retirada");
+        if (order.getDeliveryDriver() != null && !order.getDeliveryDriver().equalsIgnoreCase(driver))
+            throw new IllegalArgumentException("Entrega já atribuída a outro entregador");
+        order.setDeliveryDriver(driver);
+        SaleOrder saved = orders.save(order);
+        audit.record(branchId, "ASSIGN_DELIVERY", "SALE_ORDER", id, driver);
+        realtime.publish("ORDER_UPDATED", branchId, saved);
+        return saved;
+    }
+
     public CouponResult validateCoupon(Long branchId, String code, BigDecimal subtotal) {
         Coupon coupon = activeCoupon(branchId, code);
         return new CouponResult(coupon.getCode(), coupon.getDescription(), calculateDiscount(coupon, subtotal));
