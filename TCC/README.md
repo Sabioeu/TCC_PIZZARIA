@@ -1,53 +1,62 @@
 # Aurora Pizza OS
 
-Sistema full-stack de gestão para pizzarias, reconstruído a partir da base do TCC. A aplicação reúne frente de caixa, cozinha, salão, cardápio, estoque, relacionamento, financeiro e inteligência gerencial em uma experiência responsiva.
+Plataforma full-stack para gestão de pizzarias: PDV, cozinha (KDS), delivery, salão, reservas, cardápio, fichas técnicas, estoque, compras, CRM, fidelidade, caixa, financeiro, auditoria e inteligência operacional.
 
-## Módulos
+## Requisitos
 
-- **Visão geral:** indicadores de receita, ticket médio, canais e alertas inteligentes.
-- **PDV:** pedidos para salão, delivery ou retirada, catálogo filtrável e carrinho.
-- **KDS:** fila de produção em tempo real com avanço de etapas.
-- **Pedidos:** central omnichannel com busca, filtros e histórico.
-- **Mesas:** mapa do salão e ciclo de ocupação, reserva e limpeza.
-- **Cardápio:** produtos, preços, custos e margem de contribuição.
-- **Estoque:** posição de insumos, níveis mínimos, validade e fornecedores.
-- **Clientes:** cadastro, histórico e segmentação de fidelidade.
-- **Financeiro:** fluxo de caixa, contas a pagar e receber.
-- **Inteligência:** KPIs, horários de pico e ranking do cardápio.
-- **Configurações:** identidade e parâmetros operacionais.
+- Java 21
+- Node.js 20 ou superior
+- npm
 
-## Executar
+## Como executar no Windows (CMD)
 
-### API
+Abra **dois** terminais na pasta `TCC`.
 
-```powershell
+### Terminal 1 — API
+
+```cmd
 cd pizza_integrador\pizza\pizza
-.\mvnw.cmd spring-boot:run
+mvnw.cmd spring-boot:run
 ```
 
-A API inicia em `http://localhost:8081`. A documentação interativa fica em `http://localhost:8081/swagger-ui.html`.
+A API ficará em `http://localhost:8081` e a documentação Swagger em `http://localhost:8081/swagger-ui.html`.
 
-O perfil padrão usa H2 em memória. Para PostgreSQL, ative o perfil `prod` e informe `DATABASE_URL`, `DATABASE_USERNAME` e `DATABASE_PASSWORD`.
+### Terminal 2 — interface
 
-### Front-end
-
-```powershell
+```cmd
 cd pizza-front-end\frontend
 npm install
 npm start
 ```
 
-A interface inicia em `http://localhost:3000`. Para apontar para outro endereço da API, defina `REACT_APP_API_URL` antes de iniciar.
+Abra `http://localhost:3000` no navegador.
+
+> Se a porta 8081 ou 3000 já estiver ocupada, encerre o processo anterior antes de iniciar novamente. A interface continua em modo demonstração se a API estiver desligada.
+
+## Acesso de demonstração
+
+| Perfil | E-mail | Senha |
+| --- | --- | --- |
+| Administrador | `admin@aurora.pizza` | `Aurora@2026` |
+| Gerente | `gerente@aurora.pizza` | `Aurora@2026` |
+| Cozinha | `cozinha@aurora.pizza` | `Aurora@2026` |
+| Caixa | `caixa@aurora.pizza` | `Aurora@2026` |
+
+## Dados e ambiente
+
+No primeiro início, o back-end cria uma base H2 persistente em `pizza_integrador\pizza\pizza\data\aurora-v2.mv.db`, já com dados demonstrativos. O arquivo legado `aurora.mv.db`, caso exista, é preservado.
+
+Para produção, execute com o perfil PostgreSQL e defina `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` e `AURORA_JWT_SECRET`.
 
 ## Qualidade
 
-```powershell
-# Back-end
-.\mvnw.cmd test
+```cmd
+cd pizza_integrador\pizza\pizza
+mvnw.cmd test
 
-# Front-end
-npm test -- --watchAll=false --runInBand
+cd ..\..\..\pizza-front-end\frontend
+npm test
 npm run build
 ```
 
-O front-end mantém dados de demonstração locais quando a API está indisponível, permitindo apresentações sem dependência de infraestrutura.
+O projeto usa migrações Flyway, autenticação JWT com perfis de acesso, isolamento por unidade, WebSocket autenticado por filial e fila local de pedidos para tolerar quedas temporárias da API.
