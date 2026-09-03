@@ -81,8 +81,11 @@ p {
     radial-gradient(circle at 5% 0%, rgba(232, 100, 25, 0.18), transparent 34%),
     var(--sidebar);
   border-right: 1px solid rgba(255, 255, 255, 0.06);
-  transition: transform 220ms ease;
+  transition: width 220ms ease, transform 220ms ease;
 }
+
+.sidebar-collapse { position:absolute; top:68px; right:-14px; z-index:3; display:grid; width:28px; height:28px; padding:0; place-items:center; color:#9ba6b5; background:#252d38; border:1px solid rgba(255,255,255,.12); border-radius:50%; box-shadow:0 6px 18px rgba(0,0,0,.22); cursor:pointer; transition:160ms ease; }
+.sidebar-collapse:hover { color:#fff; background:var(--brand); transform:scale(1.06); }.sidebar-collapse .icon { width:14px; height:14px; transform:rotate(180deg); transition:transform 220ms ease; }
 
 .brand-block {
   display: flex;
@@ -260,6 +263,25 @@ p {
   width: calc(100% - 272px);
   min-width: 0;
   margin-left: 272px;
+  transition: width 220ms ease, margin-left 220ms ease;
+}
+
+@media (min-width: 921px) {
+  .sidebar-collapsed .sidebar { width:84px; }
+  .sidebar-collapsed .app-main { width:calc(100% - 84px); margin-left:84px; }
+  .sidebar-collapsed .brand-block { padding-inline:20px; justify-content:center; }
+  .sidebar-collapsed .brand-copy,.sidebar-collapsed .branch-switcher > div,.sidebar-collapsed .branch-switcher > .icon,.sidebar-collapsed .nav-label,.sidebar-collapsed .nav-link > span,.sidebar-collapsed .nav-count,.sidebar-collapsed .user-meta,.sidebar-collapsed .presence,.sidebar-collapsed .install-app span { display:none; }
+  .sidebar-collapsed .branch-switcher { margin-inline:14px; padding:11px; justify-content:center; }
+  .sidebar-collapsed .sidebar-scroll { padding-inline:13px; }
+  .sidebar-collapsed .nav-section + .nav-section { margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.07); }
+  .sidebar-collapsed .nav-link { justify-content:center; padding-inline:0; gap:0; }
+  .sidebar-collapsed .nav-link .icon { width:20px; height:20px; }
+  .sidebar-collapsed .nav-link.active::before { left:-13px; }
+  .sidebar-collapsed .sidebar-footer { padding-inline:14px; }
+  .sidebar-collapsed .user-chip { justify-content:center; padding:9px; }
+  .sidebar-collapsed .install-app { margin-inline:14px; justify-content:center; }
+  .sidebar-collapsed .profile-popover { width:250px; right:auto; bottom:14px; left:74px; }
+  .sidebar-collapsed .sidebar-collapse .icon { transform:rotate(0); }
 }
 
 .topbar {
@@ -1314,6 +1336,7 @@ p {
   .sidebar { transform: translateX(-100%); box-shadow: 20px 0 55px rgba(12,18,25,.24); }
   .sidebar.open { transform: translateX(0); }
   .sidebar-close { display: inline-grid; color: #aeb7c4; background: transparent; border-color: rgba(255,255,255,.09); }
+  .sidebar-collapse { display:none; }
   .app-main { width: 100%; margin-left: 0; }
   .menu-button { display: inline-grid; }
   .sidebar-overlay { position: fixed; inset: 0; z-index: 35; display: block; padding: 0; background: rgba(13,18,25,.48); border: 0; backdrop-filter: blur(3px); }
