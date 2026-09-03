@@ -38,4 +38,11 @@ public class BusinessSettings {
     @Builder.Default
     private boolean cashEnabled = true;
     private String pixKey;
+    @Builder.Default
+    private boolean whatsappConnected = false;
+    private String whatsappMode;
+    private String whatsappPhoneNumber;
+    private String paymentProvider;
+    private String fiscalProvider;
+    private String fiscalEnvironment;
 }

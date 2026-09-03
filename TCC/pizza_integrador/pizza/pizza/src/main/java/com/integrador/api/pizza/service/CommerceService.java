@@ -19,6 +19,7 @@ public class CommerceService {
     private final FiscalDocumentRepository fiscalDocuments;
     private final SaleOrderRepository orders;
     private final CustomerRepository customers;
+    private final BusinessSettingsRepository settings;
     private final AuditService audit;
 
     public List<PaymentCharge> charges(Long branchId) { return charges.findTop100ByBranchIdOrderByCreatedAtDesc(branchId); }
@@ -79,6 +80,25 @@ public class CommerceService {
         snapshot.put("charges", charges(branchId)); snapshot.put("messages", messages(branchId)); snapshot.put("fiscalDocuments", fiscalDocuments(branchId));
         audit.record(branchId, "EXPORT_BACKUP", "BACKUP", null, "Snapshot operacional exportado");
         return snapshot;
+    }
+
+    @Transactional
+    public void queueAutomaticOrderMessage(SaleOrder order) {
+        BusinessSettings config = settings.findByBranchId(order.getBranchId()).orElse(null);
+        if (config == null || !config.isWhatsappConnected() || order.getCustomerPhone() == null || order.getCustomerPhone().isBlank()) return;
+        String message = switch (order.getStatus()) {
+            case RECEIVED -> "Olá, " + order.getCustomerName() + "! Recebemos seu pedido " + order.getCode() + " e já vamos cuidar dele. 🍕";
+            case PREPARING -> "Seu pedido " + order.getCode() + " entrou em preparo. A cozinha Aurora já está trabalhando nele.";
+            case READY -> "Seu pedido " + order.getCode() + " está pronto" + (order.getType() == SaleOrder.Type.DELIVERY ? " e seguirá para entrega em breve." : " para retirada/serviço.");
+            case OUT_FOR_DELIVERY -> "Seu pedido " + order.getCode() + " saiu para entrega. Está quase aí! 🛵";
+            case DELIVERED, COMPLETED -> "Pedido " + order.getCode() + " finalizado. Obrigado por escolher a Aurora Pizza!";
+            default -> null;
+        };
+        if (message == null) return;
+        messages.save(CustomerMessage.builder().branchId(order.getBranchId()).customerId(order.getCustomerId()).orderId(order.getId())
+                .channel(CustomerMessage.Channel.WHATSAPP).status(CustomerMessage.Status.QUEUED).recipient(order.getCustomerPhone())
+                .templateCode("ORDER_" + order.getStatus().name()).body(message).build());
+        audit.record(order.getBranchId(), "QUEUE_AUTOMATION", "CUSTOMER_MESSAGE", order.getId(), "WhatsApp " + order.getStatus());
     }
 
     private SaleOrder orderForBranch(Long branchId, Long orderId) { return orders.findById(orderId).filter(value -> value.getBranchId().equals(branchId)).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pedido não encontrado")); }

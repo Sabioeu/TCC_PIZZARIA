@@ -43,6 +43,7 @@ public class OperationsService {
     private final LoyaltyTransactionRepository loyaltyTransactions;
     private final AuditService audit;
     private final OrderRealtimeHandler realtime;
+    private final CommerceService commerce;
 
     public List<Product> products(Long branchId) { return products.findAllByBranchIdOrderByCategoryAscNameAsc(branchId); }
     public List<Customer> customers(Long branchId) { return customers.findAllByBranchIdOrderByNameAsc(branchId); }
@@ -201,6 +202,7 @@ public class OperationsService {
         }
         SaleOrder saved = orders.save(order);
         audit.record(branchId, "CREATE", "SALE_ORDER", saved.getId(), saved.getCode() + " total " + saved.getTotal());
+        commerce.queueAutomaticOrderMessage(saved);
         realtime.publish("ORDER_CREATED", branchId, saved);
         return saved;
     }
@@ -227,6 +229,7 @@ public class OperationsService {
         }
         SaleOrder saved = orders.save(order);
         audit.record(branchId, "STATUS", "SALE_ORDER", id, status.name());
+        commerce.queueAutomaticOrderMessage(saved);
         realtime.publish("ORDER_UPDATED", branchId, saved);
         return saved;
     }

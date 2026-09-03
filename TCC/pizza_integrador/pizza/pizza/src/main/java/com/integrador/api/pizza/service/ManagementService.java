@@ -65,6 +65,9 @@ public class ManagementService {
         value.setAutomaticAcceptance(input.isAutomaticAcceptance()); value.setAllowNotes(input.isAllowNotes());
         value.setPrintTicket(input.isPrintTicket()); value.setPixEnabled(input.isPixEnabled());
         value.setCardEnabled(input.isCardEnabled()); value.setCashEnabled(input.isCashEnabled()); value.setPixKey(input.getPixKey());
+        value.setWhatsappConnected(input.isWhatsappConnected()); value.setWhatsappMode(input.getWhatsappMode());
+        value.setWhatsappPhoneNumber(input.getWhatsappPhoneNumber()); value.setPaymentProvider(input.getPaymentProvider());
+        value.setFiscalProvider(input.getFiscalProvider()); value.setFiscalEnvironment(input.getFiscalEnvironment());
         BusinessSettings saved = settings.save(value);
         audit.record(branchId, "UPDATE", "SETTINGS", saved.getId(), "Parametros operacionais atualizados");
         return saved;
