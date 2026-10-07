@@ -1,38 +1,47 @@
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import api from '../api/api';
+import { useAuth } from '../auth/AuthContext';
 import Icon from '../components/Icon';
-import { useApp } from '../context/AppContext';
-
-const profiles = [
-  ['Administrador', 'admin@aurora.pizza'], ['Gerente', 'gerente@aurora.pizza'],
-  ['Cozinha', 'cozinha@aurora.pizza'], ['Caixa', 'caixa@aurora.pizza'], ['Entregador', 'entregador@aurora.pizza'],
-];
-
+import './LoginPage.css';
 export default function LoginPage() {
-  const { authenticated, login, authLoading } = useApp();
-  const [email, setEmail] = useState('admin@aurora.pizza');
-  const [password, setPassword] = useState('Aurora@2026');
-  const [error, setError] = useState('');
-  if (authenticated) return <Navigate to="/" replace />;
-  const submit = async event => {
-    event.preventDefault(); setError('');
-    try { await login(email, password); } catch (exception) { setError(exception.message); }
+  const { usuario, loading, erro: conexao, entrar, carregar } = useAuth();
+  const [email, setEmail] = useState(''); const [senha, setSenha] = useState('');
+  const [erro, setErro] = useState(''); const [salvando, setSalvando] = useState(false);
+  const [configurar, setConfigurar] = useState(false);
+  const [cadastro, setCadastro] = useState(false);
+  const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [sucesso, setSucesso] = useState('');
+  useEffect(() => { let ativo = true; api.get('/auth/config').then(({ data }) => { if (ativo) setConfigurar(data.precisaAdministrador); }).catch(() => {}); return () => { ativo = false; }; }, []);
+  if (usuario) return <Navigate to={usuario.perfil === 'ATENDENTE' ? '/pedidos' : '/'} replace />;
+  const enviar = async (event) => {
+    event.preventDefault(); setErro(''); setSucesso('');
+    if (cadastro && senha !== confirmarSenha) { setErro('As senhas não coincidem.'); return; }
+    setSalvando(true);
+    try {
+      if (cadastro) {
+        await api.post('/auth/registro', { email: email.trim(), senha, confirmarSenha });
+        setCadastro(false); setSenha(''); setConfirmarSenha('');
+        setSucesso('Conta criada! Entre com seu e-mail e senha.');
+      } else { await entrar(email.trim(), senha); setSenha(''); }
+    }
+    catch (error) { setErro(error.response?.data?.message || 'Não foi possível entrar. Verifique o servidor.'); }
+    finally { setSalvando(false); }
   };
-  return <main className="login-page">
-    <section className="login-story">
-      <div className="login-brand"><span className="brand-mark"><Icon name="pizza" /></span><div><strong>Aurora Pizza</strong><span>Operating System</span></div></div>
-      <div className="login-promise"><span className="page-eyebrow">Hospitalidade movida por dados</span><h1>Uma operação inteira.<br /><em>Em perfeita sintonia.</em></h1><p>Do primeiro pedido ao último fechamento, o Aurora conecta salão, cozinha, delivery e gestão em tempo real.</p></div>
-      <div className="login-proof"><div><strong>99,9%</strong><span>disponibilidade</span></div><div><strong>−27%</strong><span>tempo de preparo</span></div><div><strong>+18%</strong><span>margem operacional</span></div></div>
-      <div className="login-orbit orbit-one" /><div className="login-orbit orbit-two" />
-    </section>
-    <section className="login-access"><form className="login-card" onSubmit={submit}>
-      <div className="login-mobile-brand"><span className="brand-mark"><Icon name="pizza" /></span><strong>Aurora Pizza</strong></div>
-      <span className="secure-kicker"><Icon name="shield" /> Acesso seguro</span><h2>Bem-vindo de volta</h2><p>Entre para comandar sua operação.</p>
-      <label className="form-field"><span className="form-label">E-mail profissional</span><div className="input-with-icon"><Icon name="users" /><input type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} /></div></label>
-      <label className="form-field"><span className="form-label">Senha</span><div className="input-with-icon"><Icon name="lock" /><input type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} /></div></label>
-      {error && <div className="login-error"><Icon name="alert" />{error}</div>}
-      <button className="button button-primary button-lg login-submit" disabled={authLoading}>{authLoading ? <><span className="spinner" />Autenticando</> : <>Entrar no Aurora<Icon name="arrow" /></>}</button>
-      <div className="demo-access"><span>Perfis para demonstração</span><div>{profiles.map(([label, value]) => <button type="button" key={value} onClick={() => { setEmail(value); setPassword('Aurora@2026'); }}>{label}</button>)}</div><small>Senha de todos: <b>Aurora@2026</b></small></div>
-    </form></section>
-  </main>;
+  return <div className="login-shell"><section className="panel login-card">
+    <div className="login-brand"><span className="brand-mark"><Icon name="pizza" /></span><span>Modelos Pizza<small>Gestão inteligente</small></span></div>
+    <span className="eyebrow">Bem-vindo</span><h1>{cadastro ? 'Crie sua conta' : 'Acesse sua operação'}</h1><p className="page-description">{cadastro ? 'Cadastre seu acesso de atendente. Outras permissões são definidas pelo administrador.' : 'Entre com o e-mail e a senha cadastrados. Seu perfil define as áreas disponíveis.'}</p>
+    {configurar && <div className="alert">O administrador inicial ainda não foi criado. No terminal do backend, execute <code>.\start.ps1 -CriarAdministrador</code> e escolha as credenciais localmente.</div>}
+    {(erro || conexao) && <div role="alert" className="alert alert-error">{erro || conexao}</div>}
+    {sucesso && <div role="status" className="alert">{sucesso}</div>}
+    <form className="form-grid" onSubmit={enviar}>
+      <div className="form-field full-span"><label className="form-label" htmlFor="login-email">E-mail</label><input id="login-email" type="email" autoComplete="username" maxLength={100} required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+      <div className="form-field full-span"><label className="form-label" htmlFor="login-senha">Senha</label><input id="login-senha" type="password" autoComplete={cadastro ? 'new-password' : 'current-password'} minLength={cadastro ? 8 : undefined} maxLength={72} required value={senha} onChange={(e) => setSenha(e.target.value)} />{cadastro && <small>Use pelo menos 8 caracteres.</small>}</div>
+      {cadastro && <div className="form-field full-span"><label className="form-label" htmlFor="confirmar-senha">Repetir senha</label><input id="confirmar-senha" type="password" autoComplete="new-password" maxLength={72} required value={confirmarSenha} onChange={(e) => setConfirmarSenha(e.target.value)} /></div>}
+      <button type="submit" className="button button-primary button-lg full-span" disabled={salvando || loading}>{salvando ? 'Aguarde...' : cadastro ? 'Criar conta' : 'Entrar no sistema'}<Icon name="arrow" size={16} /></button>
+    </form>
+    <button type="button" className="button full-span" disabled={salvando} onClick={() => { setCadastro(!cadastro); setErro(''); setSucesso(''); setSenha(''); setConfirmarSenha(''); }}>{cadastro ? 'Já tenho conta — entrar' : 'Criar meu login'}</button>
+    {conexao && <button className="button" type="button" onClick={carregar}>Tentar conexão novamente</button>}
+    <p className="login-footnote">Sessão protegida · Sua senha não fica salva neste navegador.</p>
+  </section></div>;
 }

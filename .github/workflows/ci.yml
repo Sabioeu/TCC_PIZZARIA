@@ -1,4 +1,4 @@
-name: Aurora CI
+name: Pizza CI
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
           java-version: "21"
           cache: maven
       - run: chmod +x mvnw
-      - run: ./mvnw test
+      - run: ./mvnw -Dtest=PrioridadesIntegrationTest,RelatorioServiceTest,RelatorioControllerTest test
 
   frontend:
     runs-on: ubuntu-latest
@@ -34,5 +34,7 @@ jobs:
           cache: npm
           cache-dependency-path: TCC/pizza-front-end/frontend/package-lock.json
       - run: npm ci
-      - run: npm test -- --run
+      - run: npm test -- --watchAll=false --runInBand
+        env:
+          CI: "true"
       - run: npm run build

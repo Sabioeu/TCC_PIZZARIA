@@ -1,95 +1,64 @@
-# Aurora Pizza OS
+# Sistema de gestão de pizzaria
 
-Plataforma full-stack para gestão de pizzarias: PDV, cozinha (KDS), delivery, salão, reservas, cardápio, fichas técnicas, estoque, compras, CRM, fidelidade, caixa, financeiro, jornada da equipe, avaliações verificadas, LGPD, auditoria e inteligência operacional.
+Versão do TCC desenvolvida localmente: React, Java/Spring Boot e PostgreSQL.
+
+## Funcionalidades
+
+- Dashboard, pedidos presenciais, comandas e mesas.
+- Clientes, produtos, insumos, fornecedores e usuários.
+- Estoque: entradas, saídas e posição atual, com relatórios PDF e CSV.
+- Financeiro, contas a pagar e relatórios.
+- Login por sessão, senhas BCrypt, administrador, gerente e atendente.
+- Cadastro público de atendentes com confirmação de senha.
+- Faturamento de comandas com baixa de estoque e recebimento transacionais.
+
+Delivery e iFood são evoluções futuras, não integrações prontas. O cadastro público dá acesso operacional de atendente; antes de expor o site na internet, avalie aprovação de contas ou cadastro por convite.
 
 ## Requisitos
 
-- Java 21
-- Node.js 20 ou superior
-- npm
+Java 21, Node.js (testado com 22), npm e PostgreSQL. Crie um banco vazio `pizzaria_db`. Não use o banco da versão Aurora anterior: o modelo de dados é diferente e não há migração automática entre versões.
 
-## Como executar no Windows (CMD)
+## Backend no PowerShell
 
-Abra **dois** terminais na pasta `TCC`.
-
-### Terminal 1 — API
-
-```cmd
+```powershell
 cd pizza_integrador\pizza\pizza
-mvnw.cmd spring-boot:run
+$env:DATABASE_USERNAME = 'postgres'
+$credencialBanco = Read-Host 'Senha do PostgreSQL' -AsSecureString
+$env:DATABASE_PASSWORD = [System.Net.NetworkCredential]::new('', $credencialBanco).Password
+.\start.ps1 -CriarAdministrador
 ```
 
-A API ficará em `http://localhost:8081` e a documentação Swagger em `http://localhost:8081/swagger-ui.html`.
+O administrador inicial só é criado se não existir outro. Escolha e-mail diferente dos atendentes e senha de pelo menos 12 caracteres. Nas próximas execuções configure as variáveis do banco e execute `.\start.ps1`.
 
-### Terminal 2 — interface
+API: `http://localhost:8080`. `DATABASE_URL` permite escolher outro banco PostgreSQL. Não publique credenciais. Arquivos `.env` não são carregados automaticamente pelo Spring ou pelo script.
 
-```cmd
+## Frontend em outro terminal
+
+```powershell
 cd pizza-front-end\frontend
-npm install
+npm ci
 npm start
 ```
 
-Abra `http://localhost:3000` no navegador.
+Interface: `http://localhost:3000`. API padrão: `http://localhost:8080/api`. Para mudar, configure `REACT_APP_API_URL` antes de iniciar/compilar. Outras origens além de localhost/127.0.0.1 na porta 3000 exigem `PIZZA_CORS_ORIGINS`, separadas por vírgula.
 
-> Se a porta 8081 ou 3000 já estiver ocupada, encerre o processo anterior antes de iniciar novamente. A interface continua em modo demonstração se a API estiver desligada.
+## Testes
 
-## Acesso de demonstração
-
-| Perfil | E-mail | Senha |
-| --- | --- | --- |
-| Administrador | `admin@aurora.pizza` | `Aurora@2026` |
-| Gerente | `gerente@aurora.pizza` | `Aurora@2026` |
-| Cozinha | `cozinha@aurora.pizza` | `Aurora@2026` |
-| Caixa | `caixa@aurora.pizza` | `Aurora@2026` |
-| Entregador | `entregador@aurora.pizza` | `Aurora@2026` |
-
-## Dados e ambiente
-
-No primeiro início, o back-end cria uma base H2 persistente em `pizza_integrador\pizza\pizza\data\aurora-v2.mv.db`, já com dados demonstrativos. O arquivo legado `aurora.mv.db`, caso exista, é preservado.
-
-Para produção, execute com o perfil PostgreSQL e defina `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` e `AURORA_JWT_SECRET`.
-
-## Execução com Docker e PostgreSQL
-
-Copie `.env.example` para `.env` e substitua todas as senhas/chaves de exemplo. Em seguida:
+Na pasta do backend (H2 temporário, sem alterar o PostgreSQL):
 
 ```powershell
-docker compose up --build -d
+.\mvnw.cmd '-Dtest=PrioridadesIntegrationTest,RelatorioServiceTest,RelatorioControllerTest' test
 ```
 
-O Aurora ficará disponível em `http://localhost:8080`. O Nginx entrega a interface e encaminha API/WebSocket para o backend; o PostgreSQL usa volume persistente. Em um servidor público, coloque um proxy TLS/HTTPS ou serviço gerenciado na frente da porta configurada.
+Na pasta do frontend:
 
-## Qualidade
-
-```cmd
-cd pizza_integrador\pizza\pizza
-mvnw.cmd test
-
-cd ..\..\..\pizza-front-end\frontend
-npm test
+```powershell
+npm test -- --watchAll=false --runInBand
 npm run build
 ```
 
-O projeto usa migrações Flyway, autenticação JWT com perfis de acesso, isolamento por unidade, WebSocket autenticado por filial, CI no GitHub e fila local de pedidos para tolerar quedas temporárias da API.
+## Documentação e limites
 
-## Novos fluxos operacionais
+Veja [Relatórios](RELATORIOS.md) e [Segurança e estoque](SEGURANCA_E_ESTOQUE.md). Swagger exige administrador. Em desenvolvimento o esquema é atualizado automaticamente; produção requer migrações planejadas, HTTPS, backups e proteção contra abuso. Esta versão não fornece configuração Docker compatível.
 
-- **Minha jornada:** qualquer colaborador registra entrada e saída; administradores e gerentes acompanham o histórico da unidade.
-- **Minhas entregas:** o entregador assume o pedido, abre a rota e confirma a entrega sem disputar o mesmo pedido com outro usuário.
-- **Experiência & qualidade:** gera link de avaliação por pedido concluído e consolida nota média e comentários.
-- **Privacidade & LGPD:** administrador exporta os dados de um titular e pode anonimizá-los, preservando registros financeiros necessários.
-- **Impressão automática:** habilite `Imprimir comanda` em Configurações → Pedidos e taxas.
-
-## Central comercial
-
-O menu **Central comercial** reúne cobrança PIX por pedido (QR Code e código copia e cola), uma fila auditável de WhatsApp/CRM, preparação de NFC-e e exportação de backup operacional. Os conectores foram projetados para receber credenciais de provedores como Mercado Pago, WhatsApp Business e emissor fiscal sem expor segredos no navegador. A ativação de envio/cobrança/emissão real exige as credenciais e homologação da empresa.
-
-### Dependências externas para produção
-
-- Meta Business verificada, token e `Phone Number ID` para WhatsApp.
-- Token e segredo de webhook do gateway selecionado.
-- Certificado A1 e token do provedor de NFC-e.
-- Domínio, HTTPS e serviço de hospedagem.
-- Bucket e credenciais com privilégio mínimo para backup em nuvem.
-
-Nunca coloque essas credenciais em arquivos versionados ou no frontend. Use variáveis de ambiente/secret manager do ambiente de hospedagem.
+A versão anterior permanece recuperável no histórico Git, commit `dd0b0bc`.

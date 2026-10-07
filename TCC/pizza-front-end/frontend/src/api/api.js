@@ -1,22 +1,34 @@
+// frontend/src/api/api.js
 import axios from 'axios';
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081/api';
-export const WS_URL = import.meta.env.VITE_WS_URL || API_URL.replace(/^http/, 'ws').replace(/\/api$/, '/ws/orders');
-
-const api = axios.create({ baseURL: API_URL, timeout: 6000, headers: { 'Content-Type': 'application/json' } });
-
-api.interceptors.request.use(config => {
-  try {
-    const session = JSON.parse(localStorage.getItem('aurora_session') || 'null');
-    const branchId = localStorage.getItem('aurora_branch_id');
-    if (session?.token && !session.demo) config.headers.Authorization = `Bearer ${session.token}`;
-    if (branchId) config.headers['X-Branch-Id'] = branchId;
-  } catch { /* armazenamento indisponivel; requisicao segue sem sessao */ }
-  return config;
+const api = axios.create({
+    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080/api',
+    timeout: 12000,
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json',
+    },
 });
 
-export function apiMessage(error, fallback = 'Não foi possível concluir a operação') {
-  return error?.response?.data?.detail || error?.response?.data?.message || fallback;
-}
+let csrfToken = null;
+let csrfRequest = null;
+export const limparCsrf = () => { csrfToken = null; csrfRequest = null; };
+api.interceptors.request.use(async (config) => {
+    if (!['get', 'head', 'options'].includes((config.method || 'get').toLowerCase())) {
+        if (!csrfToken) {
+            if (!csrfRequest) csrfRequest = api.get('/auth/csrf').then(({ data }) => { csrfToken = data; return data; }).finally(() => { csrfRequest = null; });
+            await csrfRequest;
+        }
+        config.headers[csrfToken.headerName] = csrfToken.token;
+    }
+    return config;
+});
+api.interceptors.response.use((response) => response, (error) => {
+    if (error.response?.status === 401 && !error.config?.url?.startsWith('/auth/')) {
+        limparCsrf(); window.dispatchEvent(new Event('pizza:session-expired'));
+    }
+    if (error.response?.status === 403) limparCsrf();
+    return Promise.reject(error);
+});
 
 export default api;

@@ -1,84 +1,58 @@
 package com.integrador.api.pizza.config;
 
-import com.integrador.api.pizza.security.JwtAuthenticationFilter;
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import com.integrador.api.pizza.repository.UsuarioRepository;
+import com.integrador.api.pizza.security.UsuarioAutenticado;
+import com.integrador.api.pizza.security.SessaoAtualizadaFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.*;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.web.cors.*;
+import java.util.*;
 
 @Configuration
-@RequiredArgsConstructor
 public class SecurityConfig {
-    private final JwtAuthenticationFilter jwtFilter;
-
-    @Bean
-    SecurityFilterChain apiSecurity(HttpSecurity http) throws Exception {
-        return http
-                .csrf(csrf -> csrf.disable())
-                .cors(Customizer.withDefaults())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/api/health", "/api/public/**", "/ws/**",
-                                "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/h2-console/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/orders").hasAnyRole("ADMIN", "MANAGER", "CASHIER", "WAITER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/orders/*/status").hasAnyRole("ADMIN", "MANAGER", "CASHIER", "KITCHEN", "WAITER", "DELIVERY")
-                        .requestMatchers(HttpMethod.PATCH, "/api/orders/*/assign-self").hasAnyRole("ADMIN", "MANAGER", "DELIVERY")
-                        .requestMatchers(HttpMethod.GET, "/api/products", "/api/orders", "/api/tables").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/branches").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasAnyRole("ADMIN", "MANAGER")
-                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasAnyRole("ADMIN", "MANAGER")
-                        .requestMatchers("/api/customers/**", "/api/loyalty/**").hasAnyRole("ADMIN", "MANAGER", "CASHIER", "WAITER")
-                        .requestMatchers("/api/settings/**").hasAnyRole("ADMIN", "MANAGER")
-                        .requestMatchers("/api/users/**", "/api/audit/**").hasRole("ADMIN")
-                        .requestMatchers("/api/privacy/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/workforce/my").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/workforce/**", "/api/experience/**").hasAnyRole("ADMIN", "MANAGER")
-                        .requestMatchers("/api/workforce/**").authenticated()
-                        .requestMatchers("/api/cash/**").hasAnyRole("ADMIN", "MANAGER", "CASHIER")
-                        .requestMatchers("/api/commerce/backup", "/api/commerce/fiscal/**", "/api/commerce/messages/**").hasAnyRole("ADMIN", "MANAGER")
-                        .requestMatchers("/api/commerce/**").hasAnyRole("ADMIN", "MANAGER", "CASHIER")
-                        .requestMatchers("/api/finance/**", "/api/purchases/**", "/api/suppliers/**", "/api/reports/**")
-                        .hasAnyRole("ADMIN", "MANAGER")
-                        .anyRequest().authenticated())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
+    @Bean public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+    @Bean public UserDetailsService userDetailsService(UsuarioRepository repo) {
+        return email -> new UsuarioAutenticado(repo.findByEmailIgnoreCase(email.trim()).orElseThrow(()->new UsernameNotFoundException("Credenciais inválidas.")));
     }
-
-    @Bean
-    PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
-
-    @Bean
-    UserDetailsService userDetailsService(com.integrador.api.pizza.repository.AppUserRepository users) {
-        return email -> users.findByEmailIgnoreCase(email).map(value -> User.withUsername(value.getEmail())
-                .password(value.getPasswordHash()).roles(value.getRole().name()).disabled(!value.isActive()).build())
-                .orElseThrow(() -> new org.springframework.security.core.userdetails.UsernameNotFoundException("Usuario nao encontrado"));
+    @Bean public SecurityFilterChain securityFilterChain(HttpSecurity http, UsuarioRepository repo, ObjectMapper json) throws Exception {
+        http.cors(cors->cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf->{ /* Token de sessão exposto via /auth/csrf; proteção padrão permanece ativa. */ })
+            .requestCache(cache->cache.disable())
+            .authorizeHttpRequests(auth->auth
+                .requestMatchers("/api/auth/csrf","/api/auth/config","/api/auth/login","/api/auth/registro","/error").permitAll()
+                .requestMatchers("/api/usuarios/**","/swagger-ui/**","/swagger-ui.html","/v3/api-docs/**").hasRole("ADMINISTRADOR")
+                .requestMatchers("/api/transacoes/**","/api/contas/**","/api/relatorios/**","/api/dashboard/**","/api/movimentos-estoque/**").hasAnyRole("ADMINISTRADOR","GERENTE")
+                .requestMatchers(HttpMethod.GET,"/api/**").authenticated()
+                .requestMatchers("/api/produtos/**","/api/insumos/**","/api/fornecedores/**","/api/mesas/**").hasAnyRole("ADMINISTRADOR","GERENTE")
+                .requestMatchers(HttpMethod.DELETE,"/api/**").hasAnyRole("ADMINISTRADOR","GERENTE")
+                .requestMatchers("/api/**").authenticated()
+                .anyRequest().denyAll())
+            .formLogin(login->login.loginProcessingUrl("/api/auth/login").usernameParameter("email")
+                .successHandler((request,response,auth)->{ response.setContentType("application/json;charset=UTF-8"); json.writeValue(response.getOutputStream(),Map.of("message","Login realizado.")); })
+                .failureHandler((request,response,error)->{ response.setStatus(401); response.setContentType("application/json;charset=UTF-8"); json.writeValue(response.getOutputStream(),Map.of("message","E-mail ou senha incorretos.")); }))
+            .logout(logout->logout.logoutUrl("/api/auth/logout").deleteCookies("JSESSIONID")
+                .logoutSuccessHandler((request,response,auth)->response.setStatus(204)))
+            .exceptionHandling(errors->errors
+                .authenticationEntryPoint((request,response,error)->{ response.setStatus(401); response.setContentType("application/json;charset=UTF-8"); json.writeValue(response.getOutputStream(),Map.of("message","Entre no sistema para continuar.")); })
+                .accessDeniedHandler((request,response,error)->{ response.setStatus(403); response.setContentType("application/json;charset=UTF-8"); json.writeValue(response.getOutputStream(),Map.of("message","Acesso não permitido ou sessão de segurança expirada. Atualize a página.")); }))
+            .addFilterBefore(new SessaoAtualizadaFilter(repo),AuthorizationFilter.class);
+        return http.build();
     }
-
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setExposedHeaders(List.of("Location"));
-        config.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", config);
-        return source;
+    @Value("${pizza.cors.origins:http://localhost:3000,http://127.0.0.1:3000}") private String origins;
+    @Bean public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration c=new CorsConfiguration();
+        c.setAllowedOrigins(Arrays.stream(origins.split(",")).map(String::trim).filter(s->!s.isEmpty()).toList());
+        c.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+        c.setAllowedHeaders(List.of("Content-Type","X-CSRF-TOKEN","X-XSRF-TOKEN","Accept"));
+        c.setExposedHeaders(List.of("Content-Disposition")); c.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source=new UrlBasedCorsConfigurationSource(); source.registerCorsConfiguration("/**",c); return source;
     }
 }

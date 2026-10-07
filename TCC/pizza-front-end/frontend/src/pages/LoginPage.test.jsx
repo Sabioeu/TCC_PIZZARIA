@@ -1,0 +1,41 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import LoginPage from './LoginPage';
+import { useAuth } from '../auth/AuthContext';
+import api from '../api/api';
+jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }));
+jest.mock('../api/api', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }));
+beforeEach(() => { api.get.mockResolvedValue({ data: { precisaAdministrador: false } }); });
+test('cadastro impede senhas diferentes e envia confirmação quando iguais', async () => {
+  useAuth.mockReturnValue({ usuario: null, loading: false });
+  api.post.mockResolvedValue({ data: {} }); api.post.mockClear();
+  render(<MemoryRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}><LoginPage /></MemoryRouter>);
+  fireEvent.click(screen.getByRole('button', { name: 'Criar meu login' }));
+  fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'novo@teste.com' } });
+  fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'SenhaTeste123!' } });
+  fireEvent.change(screen.getByLabelText('Repetir senha'), { target: { value: 'OutraSenha' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Criar conta' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('As senhas não coincidem.');
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText('Repetir senha'), { target: { value: 'SenhaTeste123!' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Criar conta' }));
+  expect(await screen.findByRole('status')).toHaveTextContent('Conta criada!');
+  expect(api.post).toHaveBeenCalledWith('/auth/registro', { email: 'novo@teste.com', senha: 'SenhaTeste123!', confirmarSenha: 'SenhaTeste123!' });
+});
+test('login envia credenciais ao contexto e mostra erro genérico', async () => {
+  const entrar = jest.fn().mockRejectedValue({ response: { data: { message: 'E-mail ou senha incorretos.' } } });
+  useAuth.mockReturnValue({ usuario: null, loading: false, entrar });
+  render(<MemoryRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}><LoginPage /></MemoryRouter>);
+  fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'teste@exemplo.com' } });
+  fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'umaSenhaTeste' } });
+  fireEvent.click(screen.getByRole('button', { name: /Entrar no sistema/ }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('E-mail ou senha incorretos.');
+  expect(entrar).toHaveBeenCalledWith('teste@exemplo.com', 'umaSenhaTeste');
+});
+test('orienta criação local do primeiro administrador sem cadastro público', async () => {
+  useAuth.mockReturnValue({ usuario: null, loading: false });
+  api.get.mockResolvedValue({ data: { precisaAdministrador: true } });
+  render(<MemoryRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}><LoginPage /></MemoryRouter>);
+  expect(await screen.findByText(/O administrador inicial ainda não foi criado/)).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Cadastrar administrador/ })).not.toBeInTheDocument();
+});
