@@ -1,0 +1,50 @@
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import ContasAPagarPage from './ContasAPagarPage';
+import api from '../api/api';
+import { localDate } from '../utils/formatters';
+jest.mock('../api/api', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn(), patch: jest.fn(), put: jest.fn(), delete: jest.fn() } }));
+const conta = { id: 1, grupoId: 'grupo', descricao: 'Compra farinha', valor: 20, dataVencimento: localDate(), status: 'PENDENTE', fornecedor: { id: 1, nome: 'Fornecedor teste' } };
+const paga = { ...conta, id: 2, descricao: 'Parcela paga', status: 'PAGA', dataPagamento: localDate() };
+beforeEach(() => { jest.resetAllMocks(); api.get.mockImplementation((url) => Promise.resolve({ data: url === '/contas' ? [conta, paga] : [conta.fornecedor] })); });
+test('baixa bloqueia duplicação e fecha após sucesso', async () => {
+  let resolve; api.patch.mockImplementation(() => new Promise((done) => { resolve = done; }));
+  render(<ContasAPagarPage />); await screen.findByText('Compra farinha');
+  fireEvent.click(screen.getByRole('button', { name: 'Baixar' }));
+  const confirm = screen.getByRole('button', { name: 'Confirmar baixa' });
+  fireEvent.click(confirm); fireEvent.click(confirm);
+  expect(api.patch).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  resolve({ data: { ...conta, status: 'PAGA', dataPagamento: localDate() } });
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+});
+test('exclusão de parcelamento preserva parcelas pagas no histórico', async () => {
+  api.delete.mockResolvedValue({});
+  render(<ContasAPagarPage />); await screen.findByText('Compra farinha');
+  fireEvent.click(screen.getByRole('button', { name: 'Excluir Compra farinha' }));
+  expect(screen.getByRole('alertdialog')).toHaveTextContent('parcelas já pagas permanecerão');
+  fireEvent.click(screen.getByRole('button', { name: 'Excluir lançamento' }));
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button', { name: 'Histórico pago' }));
+  expect(screen.getByText('Parcela paga')).toBeInTheDocument();
+});
+test('falha de pagamento permanece visível dentro do diálogo', async () => {
+  api.patch.mockRejectedValue({ response: { status: 409, data: { message: 'Pagamento já registrado.' } } });
+  render(<ContasAPagarPage />); await screen.findByText('Compra farinha');
+  fireEvent.click(screen.getByRole('button', { name: 'Baixar' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Confirmar baixa' }));
+  expect(await within(screen.getByRole('dialog')).findByRole('alert')).toHaveTextContent('Pagamento já registrado.');
+  expect(screen.getByRole('button', { name: 'Confirmar baixa' })).toBeEnabled();
+});
+test('cadastro envia fornecedor e parcelas com labels acessíveis', async () => {
+  api.post.mockResolvedValue({ data: [{ ...conta, id: 3, descricao: 'Compra bebidas' }] });
+  render(<ContasAPagarPage />); await screen.findByText('Compra farinha');
+  fireEvent.click(screen.getByRole('button', { name: /Novo lançamento/ }));
+  fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'Compra bebidas' } });
+  fireEvent.change(screen.getByLabelText('Fornecedor', { selector: 'select' }), { target: { value: '1' } });
+  fireEvent.change(screen.getByLabelText('Valor total'), { target: { value: '100' } });
+  fireEvent.change(screen.getByLabelText('Primeiro vencimento'), { target: { value: '2026-11-01' } });
+  fireEvent.change(screen.getByLabelText('Parcelas'), { target: { value: '3' } });
+  fireEvent.submit(screen.getByRole('dialog').querySelector('form'));
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith('/contas', { descricao: 'Compra bebidas', fornecedorId: 1, valorTotal: 100, primeiroVencimento: '2026-11-01', parcelas: 3 }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+});

@@ -40,7 +40,7 @@ O administrador não pode excluir a própria conta nem retirar seu próprio aces
 
 Na tela atual de pedidos, os itens pertencem a **comandas**:
 
-1. Abrir comanda ou adicionar itens NÃO baixa o estoque e NÃO reserva quantidades.
+1. Abrir comanda ou adicionar itens valida a disponibilidade e reserva logicamente as quantidades. A baixa física ocorre no faturamento. Produtos preparados usam ingredientes da ficha técnica e preservam o consumo por item.
 2. O servidor usa o preço cadastrado do produto para novos itens, em vez de confiar no preço enviado pelo navegador. Itens existentes mantêm seu preço histórico.
 3. Faturar bloqueia a comanda, agrega quantidades por produto e bloqueia os saldos no banco em ordem estável.
 4. A baixa e seus movimentos, o recebimento financeiro, o fechamento e a liberação da mesa são feitos na mesma transação.
@@ -57,9 +57,9 @@ Novos saldos iniciais de produtos/insumos e alterações do saldo de insumos ger
 
 - Vendas antigas não foram recalculadas, nem foram criadas baixas retroativas. Os campos novos de origem/referência são nulos nos movimentos antigos; não há tentativa de inferir sua origem.
 - O esquema adiciona campos opcionais em movimentos de estoque no próximo início do backend (`ddl-auto=update`, configuração de desenvolvimento já existente). Faça backup antes de atualizar um ambiente importante.
-- A API legada `/api/pedidos` tem um fluxo separado que baixa estoque ao cadastrar seus itens. Não confunda esse fluxo com as comandas da tela atual nem lance a mesma venda nos dois. Cancelamento/estorno completo dessa API e integração iFood não foram incluídos nesta etapa.
-- Reservas de estoque de comandas abertas não foram implementadas. A disponibilidade é confirmada no faturamento.
-- Não há ficha técnica ligando produtos a consumo automático de ingredientes; a venda de um produto não calcula consumo de farinha, queijo etc.
+- A API legada `/api/pedidos` preserva consultas históricas, mas recusa novas escritas com HTTP 410. Novos atendimentos usam `/api/comandas`; não lance a mesma venda em dois fluxos. Integração iFood e estornos completos não estão implementados.
+- Comandas abertas reservam estoque logicamente; disponibilidade é validada ao criar/adicionar itens e novamente ao faturar. Cancelamento libera as reservas. Veja [Fichas técnicas](FICHAS-TECNICAS-E-ESTOQUE.md).
+- Produtos podem usar estoque físico próprio ou ficha técnica com consumo de ingredientes; a venda não baixa os dois simultaneamente.
 - Não foi implantado um histórico geral de auditoria nem migração completa dos campos monetários para BigDecimal. Permanecem melhorias futuras.
 
 ## Produção
@@ -71,7 +71,7 @@ Estas mudanças não substituem uma revisão de implantação. Para produção, 
 `PrioridadesIntegrationTest` usa banco H2 separado, recriado para testes, sem acesso ao PostgreSQL real. Verifica autenticação com BCrypt/CSRF/sessão, perfis, CORS, ausência de senha nas respostas, revogação de sessão, movimentos, insuficiência de estoque, rollback e fechamento concorrente.
 
 ```powershell
-.\mvnw.cmd "-Dtest=PrioridadesIntegrationTest,RelatorioServiceTest,RelatorioControllerTest" test
+.\mvnw.cmd test
 ```
 
 Não execute testes de contexto antigos contra um banco de produção sem revisar sua configuração.

@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import Select from '../components/Select';
+import React, { useEffect, useRef, useState } from 'react';
 import api from '../api/api';
 import Icon from '../components/Icon';
 import PageHeader from '../components/PageHeader';
+import DataTable from '../components/DataTable';
+import { useToast } from '../components/ToastProvider';
 import './RelatoriosPage.css';
 
 const modelos = [
@@ -17,6 +20,8 @@ const inicial = { nome: 'estoque-entradas', inicio: dataLocal(new Date(hoje.getF
 const parametros = ({ nome, ...filtros }) => Object.fromEntries(Object.entries(filtros).filter(([chave, valor]) => valor && !(nome === 'estoque-posicao' && ['inicio', 'fim'].includes(chave)) && !(nome !== 'contas-a-pagar' && chave === 'status')));
 
 export default function RelatoriosPage() {
+  const { notify } = useToast();
+  const downloadEmCurso = useRef(false);
   const [filtros, setFiltros] = useState(inicial);
   const [consulta, setConsulta] = useState(inicial);
   const [resultado, setResultado] = useState(null);
@@ -24,13 +29,12 @@ export default function RelatoriosPage() {
   const [exportando, setExportando] = useState('');
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
-  const [pagina, setPagina] = useState(1);
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true); setErro(''); setSucesso(''); setResultado(null); setPagina(1);
+    setLoading(true); setErro(''); setSucesso(''); setResultado(null);
     api.get(`/relatorios/${consulta.nome}/dados`, { params: parametros(consulta), signal: controller.signal, timeout: 60000 })
       .then(({ data }) => { if (!controller.signal.aborted) setResultado(data); })
-      .catch((error) => { if (!controller.signal.aborted) setErro(error.response?.data?.message || 'Não foi possível consultar. Verifique se o backend foi reiniciado com os novos relatórios.'); })
+      .catch(() => { if (!controller.signal.aborted) setErro('Não foi possível consultar o relatório. Confira a conexão e tente novamente.'); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [consulta]);
@@ -47,6 +51,8 @@ export default function RelatoriosPage() {
     setConsulta({ ...filtros });
   };
   const exportar = async (formato) => {
+    if (downloadEmCurso.current) return;
+    downloadEmCurso.current = true;
     setExportando(formato); setErro(''); setSucesso('');
     try {
       const response = await api.get(`/relatorios/${consulta.nome}`, { params: { ...parametros(consulta), formato }, responseType: 'blob', timeout: 120000 });
@@ -56,12 +62,11 @@ export default function RelatoriosPage() {
       document.body.appendChild(link); link.click(); link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       setSucesso(`Download em ${formato.toUpperCase()} iniciado com os filtros da consulta exibida.`);
+      notify(`Download em ${formato.toUpperCase()} iniciado.`);
     } catch (error) {
       setErro('Não foi possível exportar o relatório. Tente novamente e verifique o backend.');
-    } finally { setExportando(''); }
+    } finally { downloadEmCurso.current = false; setExportando(''); }
   };
-  const paginas = Math.max(1, Math.ceil((resultado?.linhas.length || 0) / 20));
-  const linhas = resultado?.linhas.slice((pagina - 1) * 20, pagina * 20) || [];
   const alterado = JSON.stringify(parametros(filtros)) !== JSON.stringify(parametros(consulta)) || filtros.nome !== consulta.nome;
   return (
     <div className="page-stack">
@@ -78,7 +83,7 @@ export default function RelatoriosPage() {
           <div className="form-field"><label className="form-label" htmlFor="report-inicio">Data inicial</label><input id="report-inicio" type="date" value={filtros.inicio} disabled={filtros.nome === 'estoque-posicao'} onChange={(e) => alterar('inicio', e.target.value)} /></div>
           <div className="form-field"><label className="form-label" htmlFor="report-fim">Data final</label><input id="report-fim" type="date" value={filtros.fim} disabled={filtros.nome === 'estoque-posicao'} onChange={(e) => alterar('fim', e.target.value)} /></div>
           <div className="form-field"><label className="form-label" htmlFor="report-busca">Buscar</label><input id="report-busca" placeholder={filtros.nome.startsWith('estoque') ? 'Nome do item...' : 'Descrição...'} maxLength={150} value={filtros.busca} onChange={(e) => alterar('busca', e.target.value)} /></div>
-          {filtros.nome === 'contas-a-pagar' && <div className="form-field"><label className="form-label" htmlFor="report-status">Situação</label><select id="report-status" value={filtros.status} onChange={(e) => alterar('status', e.target.value)}><option value="">Todas</option><option value="PENDENTE">Pendentes</option><option value="VENCIDA">Vencidas</option><option value="PAGA">Pagas</option></select></div>}
+          {filtros.nome === 'contas-a-pagar' && <div className="form-field"><label className="form-label" htmlFor="report-status">Situação</label><Select id="report-status" value={filtros.status} onChange={(e) => alterar('status', e.target.value)}><option value="">Todas</option><option value="PENDENTE">Pendentes</option><option value="VENCIDA">Vencidas</option><option value="PAGA">Pagas</option></Select></div>}
           <div className="report-filter-actions"><button className="button button-primary" type="submit" disabled={loading || Boolean(exportando)}><Icon name="reports" size={16} /> Consultar</button><button className="button" type="button" disabled={loading || Boolean(exportando)} onClick={() => { const limpos = { ...filtros, inicio: '', fim: '', busca: '', status: '' }; setFiltros(limpos); setConsulta(limpos); }}>Limpar filtros</button></div>
         </form>
       </section>
@@ -87,13 +92,8 @@ export default function RelatoriosPage() {
       {alterado && resultado && <div className="alert">Filtros alterados. Clique em Consultar para atualizar os dados e as exportações.</div>}
       {loading ? <div className="loading-state"><div><div className="spinner" />Consultando registros...</div></div> : resultado && <>
         <section className="summary-grid">{resultado.indicadores.map((indicador) => <div className="summary-card" key={indicador.titulo}><small>{indicador.titulo}</small><strong>{indicador.valor}</strong></div>)}</section>
-        <section className="panel">
-          <div className="panel-header report-result-header"><div><h2 className="panel-title">{resultado.titulo}</h2><p className="panel-subtitle">{resultado.periodo}</p></div><div className="report-filter-actions"><button className="button button-primary" type="button" disabled={Boolean(exportando) || alterado} onClick={() => exportar('pdf')}>{exportando === 'pdf' ? 'Gerando PDF...' : 'Baixar PDF'}</button><button className="button" type="button" disabled={Boolean(exportando) || alterado} onClick={() => exportar('csv')}>{exportando === 'csv' ? 'Gerando CSV...' : 'Baixar CSV'}</button></div></div>
-          <p className="report-note">{resultado.observacao}</p>
-          {resultado.linhas.length === 0 ? <div className="empty-state"><div><Icon name="reports" /><strong>Nenhum registro encontrado</strong><p>Experimente outro período ou limpe os filtros. Também é possível exportar o relatório vazio.</p></div></div> :
-            <><div className="table-wrap"><table className="data-table"><thead><tr>{resultado.colunas.map((coluna) => <th key={coluna}>{coluna}</th>)}</tr></thead><tbody>{linhas.map((linha, indice) => <tr key={indice}>{linha.celulas.map((celula, i) => <td key={i}>{celula}</td>)}</tr>)}</tbody></table></div>
-              <div className="report-pagination"><span>{resultado.linhas.length} registros · Página {pagina} de {paginas}. Exportações incluem todos os registros filtrados.</span><div className="report-filter-actions"><button className="button" disabled={pagina === 1} onClick={() => setPagina(pagina - 1)} type="button">Anterior</button><button className="button" disabled={pagina === paginas} onClick={() => setPagina(pagina + 1)} type="button">Próxima</button></div></div></>}
-        </section>
+        <div className="alert report-context"><Icon name="reports" size={17} /><span>{resultado.observacao} Exportações incluem todos os registros da consulta, não apenas a página visível.</span></div>
+        <DataTable key={JSON.stringify(consulta)} title={resultado.titulo} description={resultado.periodo} pageSize={20} rows={resultado.linhas.map((linha, id) => ({ ...linha, id }))} columns={resultado.colunas.map((coluna, indice) => ({ key: String(indice), label: coluna, sortable: false, render: (linha) => linha.celulas[indice] }))} emptyTitle="Nenhum registro encontrado" emptyDescription="Experimente outro período ou limpe os filtros. Também é possível exportar o relatório vazio." toolbar={<><button className="button button-primary" type="button" disabled={Boolean(exportando) || alterado} onClick={() => exportar('pdf')}>{exportando === 'pdf' ? 'Gerando PDF...' : 'Baixar PDF'}</button><button className="button" type="button" disabled={Boolean(exportando) || alterado} onClick={() => exportar('csv')}>{exportando === 'csv' ? 'Gerando CSV...' : 'Baixar CSV'}</button></>} />
       </>}
     </div>
   );

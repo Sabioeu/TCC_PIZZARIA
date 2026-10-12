@@ -23,6 +23,7 @@ public class RelatorioService {
     private final InsumoRepository insumos;
     private final TransacaoFinanceiraRepository transacoes;
     private final ContasApagarRepository contas;
+    private final ComandaRepository comandas;
     private JasperReport modelo;
     private static final DateTimeFormatter DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -30,7 +31,11 @@ public class RelatorioService {
     public record Indicador(String titulo, String valor) {}
     public record Resultado(String titulo, String periodo, String observacao, List<String> colunas, List<Linha> linhas, List<Indicador> indicadores) {}
     public RelatorioService(MovimentoEstoqueRepository m, ProdutoRepository p, InsumoRepository i, TransacaoFinanceiraRepository t, ContasApagarRepository c) {
-        movimentos=m; produtos=p; insumos=i; transacoes=t; contas=c;
+        this(m,p,i,t,c,null);
+    }
+    @org.springframework.beans.factory.annotation.Autowired
+    public RelatorioService(MovimentoEstoqueRepository m, ProdutoRepository p, InsumoRepository i, TransacaoFinanceiraRepository t, ContasApagarRepository c, ComandaRepository com) {
+        movimentos=m; produtos=p; insumos=i; transacoes=t; contas=c; comandas=com;
     }
     @Transactional(readOnly=true)
     public Resultado consultar(String nome, LocalDate inicio, LocalDate fim, String busca, String status) {
@@ -47,11 +52,14 @@ public class RelatorioService {
                 colunas=List.of("Data e hora","Item","Categoria","Movimento / origem","Quantidade","Unidade");
                 nota="Quantidades de unidades diferentes não são somadas. Histórico registrado; não reconstrói saldos anteriores.";
                 Map<String,BigDecimal> unidades=new TreeMap<>();
+                Map<Long,String> referencias=new HashMap<>();
+                if(comandas!=null) comandas.findAll().forEach(c -> referencias.put(c.getId(),c.getReferenciaExibicao()));
                 movimentos.findAll().stream().sorted(Comparator.comparing(m -> m.getDataHora())).forEach(m -> {
                     String item=m.getProduto()!=null ? m.getProduto().getNome() : m.getInsumo()!=null ? m.getInsumo().getNome() : "Item não identificado";
                     if ((!tipo.isEmpty() && !tipo.equals(m.getTipo())) || !noPeriodo(m.getDataHora().toLocalDate(),inicio,fim) || !contem(item,termo)) return;
                     String unidade=m.getInsumo()!=null ? texto(m.getInsumo().getUnidade()) : "un";
                     String origem=m.getOrigem()==null ? m.getTipo() : m.getTipo()+" / "+m.getOrigem()+" #"+m.getReferencia();
+                    if("COMANDA".equals(m.getOrigem())) origem=m.getTipo()+" / COMANDA "+referencias.getOrDefault(m.getReferencia(),"(ID "+m.getReferencia()+")");
                     linhas.add(linha(m.getDataHora().format(HORA),item,m.getProduto()!=null ? "Produto" : m.getInsumo()!=null ? "Insumo" : "Sem vínculo",origem,numero(BigDecimal.valueOf(m.getQuantidade())),unidade));
                     if(!tipo.isEmpty()) unidades.merge(unidade,BigDecimal.valueOf(m.getQuantidade()),BigDecimal::add);
                 });
@@ -60,8 +68,12 @@ public class RelatorioService {
             case "estoque-posicao" -> {
                 titulo="Posição atual do estoque"; periodo="Saldo cadastrado em "+LocalDateTime.now().format(HORA);
                 colunas=List.of("Código","Item","Categoria","Saldo","Unidade","Situação");
-                nota="Retrato atual, sem filtro de período. Produtos: baixo até 5 un, como na tela de estoque. Insumos: sem mínimo cadastrado.";
-                produtos.findAll().forEach(p -> { if(contem(p.getNome(),termo)) linhas.add(linha("P-"+p.getId(),p.getNome(),"Produto",p.getQuantidade()==null ? "Não informado" : numero(BigDecimal.valueOf(p.getQuantidade())),"un",p.getQuantidade()==null ? "Não informado" : p.getQuantidade()<=5 ? "Baixo" : "Regular")); });
+                nota="Retrato do saldo físico, sem filtro de período e sem descontar reservas. Produtos estocados: baixo até 5 un. Produtos preparados: saldo nos insumos; consulte a capacidade livre na tela Estoque. Insumos: sem mínimo cadastrado.";
+                produtos.findAll().forEach(p -> {
+                    if(!contem(p.getNome(),termo)) return;
+                    if(p.getPorIngredientes()) linhas.add(linha("P-"+p.getId(),p.getNome(),"Preparado","Pelos insumos","—","Ficha técnica"));
+                    else linhas.add(linha("P-"+p.getId(),p.getNome(),"Produto",p.getQuantidade()==null ? "Não informado" : numero(BigDecimal.valueOf(p.getQuantidade())),"un",p.getQuantidade()==null ? "Não informado" : p.getQuantidade()<=5 ? "Baixo" : "Regular"));
+                });
                 insumos.findAll().forEach(i -> { if(contem(i.getNome(),termo)) linhas.add(linha("I-"+i.getId(),i.getNome(),"Insumo",i.getQuantidade()==null ? "Não informado" : numero(BigDecimal.valueOf(i.getQuantidade())),i.getUnidade(),"Sem mínimo definido")); });
                 linhas.sort(Comparator.comparing(l->l.celulas().get(1),String.CASE_INSENSITIVE_ORDER));
                 indicadores.add(new Indicador("Produtos com estoque baixo",String.valueOf(linhas.stream().filter(l->"Baixo".equals(l.celulas().get(5))).count())));
@@ -72,10 +84,10 @@ public class RelatorioService {
                 nota="Recebimentos registrados e contas pagas pela data de pagamento. Saldo não é lucro nem extrato bancário. Crédito/débito são meios de pagamento. Contas pagas sem data não entram no saldo.";
                 BigDecimal[] totais={BigDecimal.ZERO,BigDecimal.ZERO};
                 transacoes.findAll().stream().sorted(Comparator.comparing(t->t.getDataHora())).forEach(t -> {
-                    if(!noPeriodo(t.getDataHora().toLocalDate(),inicio,fim) || !contem(texto(t.getDescricao())+" "+texto(t.getTipo()),termo)) return;
+                    if(!noPeriodo(t.getDataHora().toLocalDate(),inicio,fim) || !contem(texto(t.getDescricaoExibicao())+" "+texto(t.getTipo())+" "+(t.getComanda()==null ? "" : t.getComanda().getReferenciaExibicao()),termo)) return;
                     BigDecimal valor=decimal(t.getValor()); totais[0]=totais[0].add(valor);
-                    String ref=t.getComanda()!=null ? "Comanda #"+t.getComanda().getNumero() : t.getPedido()!=null ? "Pedido #"+t.getPedido().getId() : "Transação #"+t.getId();
-                    linhas.add(linha(t.getDataHora().format(HORA),t.getDescricao(),"Recebimento",t.getTipo(),ref,moeda(valor)));
+                    String ref=t.getComanda()!=null ? "Comanda "+t.getComanda().getReferenciaExibicao() : t.getPedido()!=null ? "Pedido #"+t.getPedido().getId() : "Transação #"+t.getId();
+                    linhas.add(linha(t.getDataHora().format(HORA),t.getDescricaoExibicao(),"Recebimento",t.getTipo(),ref,moeda(valor)));
                 });
                 contas.findAll().stream().filter(c->c.getStatus()==StatusConta.PAGA).sorted(Comparator.comparing(ContaAPagar::getDataPagamento,Comparator.nullsLast(Comparator.naturalOrder()))).forEach(c -> {
                     if(c.getDataPagamento()==null || !noPeriodo(c.getDataPagamento(),inicio,fim) || !contem(texto(c.getDescricao())+" "+fornecedor(c),termo)) return;
@@ -148,6 +160,6 @@ public class RelatorioService {
     static boolean noPeriodo(LocalDate d,LocalDate i,LocalDate f) { return d==null ? i==null && f==null : (i==null || !d.isBefore(i)) && (f==null || !d.isAfter(f)); }
     private static BigDecimal decimal(Double v) { return v==null ? BigDecimal.ZERO : BigDecimal.valueOf(v); }
     private static String moeda(BigDecimal v) { return NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(v); }
-    private static String numero(BigDecimal v) { NumberFormat f=NumberFormat.getNumberInstance(Locale.forLanguageTag("pt-BR")); f.setMaximumFractionDigits(3); return f.format(v); }
+    private static String numero(BigDecimal v) { NumberFormat f=NumberFormat.getNumberInstance(Locale.forLanguageTag("pt-BR")); f.setMaximumFractionDigits(6); return f.format(v); }
     private static ResponseStatusException invalido(String msg) { return new ResponseStatusException(HttpStatus.BAD_REQUEST,msg); }
 }

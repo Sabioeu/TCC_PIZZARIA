@@ -19,6 +19,7 @@ public class AuthController {
         var usuario=new com.integrador.api.pizza.dto.UsuarioCadastroDTO();
         usuario.setEmail(dados.getEmail()); usuario.setNome(dados.getEmail().trim().split("@",2)[0]);
         usuario.setSenha(dados.getSenha()); usuario.setPerfil(PerfilUsuario.ATENDENTE);
+        usuario.setAtivo(false);
         return new UsuarioResponseDTO(cadastro.cadastrarUsuario(usuario));
     }
     @GetMapping("/me") public UsuarioResponseDTO atual() { return new UsuarioResponseDTO(sessao.usuarioAtual()); }

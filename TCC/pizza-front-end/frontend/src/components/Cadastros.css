@@ -1,0 +1,32 @@
+.cadastro-form { display: grid; gap: 22px; }
+.cadastro-form > .form-fieldset { display: grid; gap: 22px; }
+.cadastro-form-section { min-width: 0; }
+.cadastro-form-section + .cadastro-form-section { border-top: 1px solid var(--line, #e3e7ed); padding-top: 22px; }
+.cadastro-section-heading { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 19px; }
+.cadastro-section-icon { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; color: #c65313; border: 1px solid #ffdec6; border-radius: 11px; background: #fff5eb; }
+.cadastro-section-heading h3 { margin: 0 0 4px; font-size: 14px; color: var(--ink, #182333); }
+.cadastro-section-heading p { margin: 0; color: var(--ink-soft, #687587); font-size: 12px; line-height: 1.6; }
+.cadastro-field { display: flex; flex-direction: column; gap: 7px; }
+.cadastro-label-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.cadastro-label-row .form-label { margin-bottom: 0; }
+.field-requirement { font-size: 9px; font-weight: 600; color: var(--ink-soft, #687587); }
+.field-requirement.is-required { color: #a14c19; }
+.cadastro-field .form-hint { line-height: 1.55; }
+.cadastro-field .field-error { font-size: 11px; line-height: 1.55; color: #b42318; }
+.cadastro-field.has-error input, .cadastro-field.has-error textarea, .cadastro-field.has-error .select-trigger { border-color: #dc766d; background: #fffafa; }
+.cadastro-form-note { display: flex; gap: 10px; padding: 13px 15px; color: var(--ink-soft, #687587); font-size: 12px; line-height: 1.65; border: 1px solid var(--line, #e3e7ed); border-radius: 12px; background: #f8fafc; }
+.cadastro-form-note .icon { flex: 0 0 auto; margin-top: 3px; color: #c65313; }
+.cadastro-form-actions { border-top: 1px solid var(--line, #e3e7ed); padding-top: 18px; margin-top: 2px; }
+.password-control { position: relative; }
+.password-control > input { width: 100%; padding-right: 48px !important; }
+.password-toggle { position: absolute; right: 3px; top: 3px; min-height: 36px; width: 40px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #687587; cursor: pointer; touch-action: manipulation; }
+.password-toggle:hover { background: #fff2e7; color: #bb4c10; }
+.password-toggle:focus-visible { outline: 2px solid #e86419; outline-offset: 1px; }
+.password-toggle:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 600px) {
+  .password-control > input { min-height: 50px; }
+  .password-toggle { min-height: 44px; width: 44px; }
+  .cadastro-section-fields { grid-template-columns: 1fr; }
+  .cadastro-form-actions { flex-wrap: wrap; }
+  .cadastro-form-actions .button { flex: 1 1 130px; min-height: 44px; }
+}

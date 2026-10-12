@@ -24,7 +24,7 @@ public class FornecedorService {
 
     public Fornecedor buscarPorId(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException("Fornecedor não encontrado"));
     }
 
     public Fornecedor salvar(Fornecedor fornecedor) {

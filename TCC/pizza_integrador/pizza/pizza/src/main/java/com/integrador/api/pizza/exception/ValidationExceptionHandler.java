@@ -9,9 +9,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.ConcurrencyFailureException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class ValidationExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(ValidationExceptionHandler.class);
 
     @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
     public ResponseEntity<Map<String,String>> handleStatus(org.springframework.web.server.ResponseStatusException ex) {
@@ -23,7 +30,7 @@ public class ValidationExceptionHandler {
             MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
+            String fieldName = error instanceof FieldError field ? field.getField() : "dados";
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
@@ -33,10 +40,27 @@ public class ValidationExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getCause()==null && ex.getMessage()!=null ? ex.getMessage() : "Falha ao processar a operação.");
-        error.put("message", ex.getCause()==null && ex.getMessage()!=null ? ex.getMessage() : "Não foi possível concluir a operação. Verifique os dados.");
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        // Não devolver SQL, classes internas, payloads nem mensagens técnicas ao navegador.
+        log.error("Falha inesperada ao processar operação: {}", ex.getClass().getName());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("message", "Não foi possível concluir a operação. Tente novamente; se persistir, contate o responsável."));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, String>> handleIntegrity(DataIntegrityViolationException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", "Os dados já existem ou estão vinculados a outros registros. Revise antes de continuar."));
+    }
+
+    @ExceptionHandler(ConcurrencyFailureException.class)
+    public ResponseEntity<Map<String, String>> handleConcurrency(ConcurrencyFailureException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", "Outro usuário atualizou estes dados. Atualize a página e tente novamente."));
+    }
+
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<Map<String, String>> handleMalformedRequest(Exception ex) {
+        return ResponseEntity.badRequest().body(Map.of("message", "Dados inválidos. Revise os campos e tente novamente."));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

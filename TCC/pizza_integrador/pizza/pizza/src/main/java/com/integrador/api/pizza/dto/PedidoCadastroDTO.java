@@ -3,6 +3,8 @@ package com.integrador.api.pizza.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,10 +18,10 @@ public class PedidoCadastroDTO {
 
     private Long mesaId;
 
-    private String tipo;
+    @NotBlank @Size(max = 50) private String tipo;
 
     // 🚨 CAMPO CRÍTICO: Lista de Itens
     // O Serviço tenta usar getItens()
-    @NotNull
+    @Valid @NotEmpty(message = "Adicione pelo menos um item")
     private List<ItemPedidoDTO> itens;
 }

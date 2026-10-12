@@ -38,6 +38,7 @@ public class DashboardService {
     private final InsumoRepository insumoRepository;
     private final ClienteRepository clienteRepository;
     private final ContasApagarRepository contasRepository;
+    private final DisponibilidadeEstoqueService disponibilidade;
 
     public DashboardService(
             TransacaoFinanceiraRepository transacaoRepository,
@@ -46,7 +47,8 @@ public class DashboardService {
             ProdutoRepository produtoRepository,
             InsumoRepository insumoRepository,
             ClienteRepository clienteRepository,
-            ContasApagarRepository contasRepository
+            ContasApagarRepository contasRepository,
+            DisponibilidadeEstoqueService disponibilidade
     ) {
         this.transacaoRepository = transacaoRepository;
         this.comandaRepository = comandaRepository;
@@ -55,6 +57,7 @@ public class DashboardService {
         this.insumoRepository = insumoRepository;
         this.clienteRepository = clienteRepository;
         this.contasRepository = contasRepository;
+        this.disponibilidade = disponibilidade;
     }
 
     @Transactional(readOnly = true)
@@ -104,7 +107,7 @@ public class DashboardService {
                 .map(t -> new DashboardResumoDTO.AtividadeRecenteDTO(
                         t.getId(),
                         normalizarTipo(t.getTipo()),
-                        t.getDescricao() == null || t.getDescricao().isBlank() ? "Recebimento registrado" : t.getDescricao(),
+                        t.getDescricaoExibicao() == null || t.getDescricaoExibicao().isBlank() ? "Recebimento registrado" : t.getDescricaoExibicao(),
                         decimal(t.getValor()),
                         t.getDataHora()))
                 .toList();
@@ -122,8 +125,10 @@ public class DashboardService {
                 .filter(v -> v != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        long estoqueBaixo = produtoRepository.findAll().stream()
-                .filter(p -> p.getQuantidade() == null || p.getQuantidade() <= 5)
+        // Produtos preparados não usam o saldo antigo de unidades. O alerta
+        // acompanha a capacidade livre, já descontando ingredientes reservados.
+        long estoqueBaixo = disponibilidade.listar().stream()
+                .filter(p -> p.disponivel() <= 5)
                 .count();
         estoqueBaixo += insumoRepository.findAll().stream()
                 .filter(i -> i.getQuantidade() == null || i.getQuantidade() <= 5)

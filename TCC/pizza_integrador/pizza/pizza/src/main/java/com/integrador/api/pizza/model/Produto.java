@@ -37,6 +37,12 @@ public class Produto {
     @Column(name = "quantidade_produto")
     private Double quantidade;
 
+    // Nulo nos registros antigos: o controle por unidades permanece como antes.
+    @Column(name = "estoque_por_ingredientes")
+    private Boolean porIngredientes = false;
+
+    public Boolean getPorIngredientes() { return Boolean.TRUE.equals(porIngredientes); }
+
     // ADICIONE ESTE CONSTRUTOR ABAIXO para resolver o problema no ProdutoService:
     // Construtor sem ID (útil para criar novos produtos a partir do DTO)
     public Produto(String nome, String descricao, Double preco) {

@@ -1,0 +1,63 @@
+.cadastro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(19, 25, 33, .48);
+  backdrop-filter: blur(4px);
+  animation: fade-in 180ms ease;
+}
+
+.cadastro-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 101;
+  display: flex;
+  width: min(620px, 100%);
+  height: 100vh;
+  height: 100dvh;
+  min-width: 0;
+  flex-direction: column;
+  color: var(--ink);
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: -18px 0 70px rgba(13, 18, 25, .16);
+  outline: none;
+  animation: cadastro-enter 220ms cubic-bezier(.2,.8,.2,1);
+}
+
+.cadastro-drawer-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 26px 28px 22px;
+  background: linear-gradient(120deg, var(--surface-warm), #fff 65%);
+  border-bottom: 1px solid var(--line);
+}
+.cadastro-drawer-header .icon-button { width: 44px; height: 44px; flex: 0 0 auto; }
+.cadastro-drawer-title { margin: 0; font-size: 25px; font-weight: 800; }
+.cadastro-drawer-subtitle { margin: 7px 0 0; max-width: 440px; color: var(--ink-soft); font-size: 12px; line-height: 1.6; }
+.cadastro-drawer-body { flex: 1; min-height: 0; min-width: 0; overflow-y: auto; padding: 24px 28px 0; overscroll-behavior: contain; }
+.cadastro-drawer-body > form { min-height: 100%; }
+.cadastro-drawer .form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 12px -28px 0;
+  padding: 18px 28px max(18px, env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.98);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 18px rgba(24,33,47,.035);
+}
+.cadastro-drawer :is(input, textarea, button) { scroll-margin-block: 20px 110px; }
+.cadastro-drawer .alert { margin-block: 10px; }
+@keyframes cadastro-enter { from { transform: translateX(35px); opacity: .6; } }
+@media (max-width: 680px) {
+  .cadastro-drawer-header { padding: 22px 20px 18px; }
+  .cadastro-drawer-title { font-size: 23px; }
+  .cadastro-drawer-body { padding: 20px 20px 0; }
+  .cadastro-drawer .form-actions { margin-inline: -20px; padding-inline: 20px; }
+  .cadastro-drawer .form-actions .button { min-height: 44px; flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .cadastro-overlay, .cadastro-drawer { animation: none; } }

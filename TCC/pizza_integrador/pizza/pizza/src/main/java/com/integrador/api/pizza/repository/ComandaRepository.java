@@ -15,7 +15,11 @@ public interface ComandaRepository extends JpaRepository<Comanda, Long> {
     @Query("select c from Comanda c where c.id = :id")
     Optional<Comanda> buscarParaAtualizar(@Param("id") Long id);
 
-    Optional<Comanda> findByNumero(Integer numero);
+    @Query("select max(c.numeroDiario) from Comanda c where c.dataNumeracao=:dia")
+    Optional<Integer> maxNumeroDiario(@Param("dia") java.time.LocalDate dia);
+
+    @Query("select c from Comanda c where c.numeroDiario is null or c.dataNumeracao is null order by c.dataHoraAbertura,c.id")
+    List<Comanda> semNumeracaoDiaria();
 
     // 🚨 CORREÇÃO DE CONSULTA: Método padrão do Spring Data JPA (Mais seguro contra erros de sintaxe)
     List<Comanda> findByStatus(String status);

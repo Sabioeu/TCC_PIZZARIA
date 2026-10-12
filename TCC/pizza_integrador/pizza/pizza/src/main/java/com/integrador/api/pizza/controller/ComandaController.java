@@ -33,6 +33,10 @@ public class ComandaController {
     public ResponseEntity<List<Comanda>> buscarAbertas() {
         return ResponseEntity.ok(service.buscarComandasAbertas());
     }
+    @PatchMapping("/{id}/etapa")
+    public ResponseEntity<Comanda> atualizarEtapa(@PathVariable Long id, @RequestBody @jakarta.validation.Valid com.integrador.api.pizza.dto.EtapaAtendimentoDTO dados) {
+        return ResponseEntity.ok(service.atualizarEtapa(id, dados.etapa()));
+    }
 
     @GetMapping
     public ResponseEntity<List<Comanda>> listarTodas() {

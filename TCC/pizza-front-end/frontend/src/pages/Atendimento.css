@@ -1,0 +1,78 @@
+.pedido-guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pedido-guide li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 15px 18px;
+  color: var(--ink-faint);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .65);
+}
+
+.pedido-guide strong { display: block; font-size: 12px; color: var(--ink-soft); }
+.pedido-guide small { display: block; margin-top: 4px; font-size: 10.5px; line-height: 1.45; }
+.pedido-guide-number { display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; background: #eef1f5; font-size: 12px; font-weight: 800; }
+.pedido-guide li.current { border-color: #f4cfb7; background: #fff9f4; }
+.pedido-guide li.current .pedido-guide-number { background: var(--brand); color: white; }
+.pedido-guide li.complete .pedido-guide-number { background: #e6f7ef; color: var(--green); }
+.atendimento-context-hint { margin: 8px 0 0; color: var(--ink-faint); font-size: 11px; line-height: 1.65; }
+.atendimento-search { width: 220px; max-width: 100%; }
+.cart-footer .atendimento-context-hint { margin: 0 0 12px; }
+.product-stock-hint { display: inline-flex; margin-top: 9px; padding: 4px 7px; border-radius: 6px; background: #edf8f1; color: #1c7653; font-size: 10px; font-weight: 700; }
+.product-stock-hint.unavailable { color: #a4483b; background: #fff0ed; }
+.product-stock-hint.ingredients:not(.unavailable) { background: #eef4ff; color: #345e9c; }
+.product-stock-mode { display: flex; align-items: center; gap: 4px; margin-top: 6px; color: var(--ink-faint); font-size: 10px; line-height: 1.5; }
+.product-cart-count { display: block; margin-top: 7px; color: var(--brand); font-size: 10px; font-weight: 800; }
+
+.atendimento-filters { padding: 18px 20px 12px; }
+.atendimento-filter-grid { display: grid; grid-template-columns: minmax(200px, 1.4fr) repeat(2, minmax(160px, 1fr)); gap: 16px; }
+.atendimento-filter-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; min-height: 38px; margin-top: 12px; color: var(--ink-faint); font-size: 11px; }
+.atendimento-filter-empty { grid-column: 1 / -1; }
+.atendimento-filter-empty .button { width: auto; margin-top: 14px; }
+.atendimento-delivery-details { padding: 12px; margin: 10px 0 16px; border-radius: 10px; background: #f7f9fb; color: var(--ink-soft); font-size: 11px; overflow-wrap: anywhere; }
+.atendimento-delivery-details p { margin: 0 0 7px; line-height: 1.55; }
+.atendimento-delivery-details p:first-child { display: flex; align-items: flex-start; gap: 7px; }
+.atendimento-delivery-details .icon { flex-shrink: 0; margin-top: 1px; }
+.atendimento-stage-track { display: flex; list-style: none; margin: 5px 0 20px; padding: 0; }
+.atendimento-stage-track li { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; flex-direction: column; gap: 7px; text-align: center; color: #66758c; font-size: 8.5px; line-height: 1.5; }
+.atendimento-stage-track li:not(:last-child)::after { position: absolute; top: 10px; left: calc(50% + 13px); width: calc(100% - 26px); height: 2px; content: ''; background: #e4e9f1; }
+.atendimento-stage-dot { z-index: 1; display: grid; place-items: center; height: 22px; width: 22px; border-radius: 50%; background: #eef1f6; color: #66758c; font-size: 9px; font-weight: 800; }
+.atendimento-stage-track .current { color: var(--brand); font-weight: 800; }
+.atendimento-stage-track .current .atendimento-stage-dot { background: var(--brand); color: white; box-shadow: 0 0 0 4px #fff0e5; }
+.atendimento-stage-track .complete .atendimento-stage-dot { background: #e6f7ef; color: var(--green); }
+.atendimento-stage-track .complete::after { background: #afdac7 !important; }
+.atendimento-card-actions { display: grid; gap: 10px; margin-top: auto; }
+.atendimento-card-actions .atendimento-context-hint { margin: -2px 0 0; }
+.comanda-card { display: flex; flex-direction: column; }
+.mesas-filter-grid { grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr); max-width: 650px; }
+.mesas-filter-grid + .atendimento-filter-footer { margin-bottom: 20px; }
+
+@media (max-width: 900px) {
+  .pedido-guide { gap: 10px; }
+  .pedido-guide li { padding: 12px; gap: 8px; }
+  .pedido-guide small { display: none; }
+  .atendimento-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .atendimento-filter-search { grid-column: 1 / -1; }
+}
+
+@media (max-width: 560px) {
+  .pedido-guide { grid-template-columns: 1fr; gap: 7px; }
+  .pedido-guide li { padding: 9px 12px; }
+  .pedido-guide-number { width: 25px; height: 25px; }
+  .pedido-guide small { display: block; margin-top: 2px; }
+  .atendimento-filters { padding: 16px; }
+  .atendimento-filter-grid { grid-template-columns: 1fr; gap: 12px; }
+  .atendimento-search { width: 100%; }
+  .atendimento-delivery-details { font-size: 12px; }
+  .atendimento-stage-track li { font-size: 9px; }
+}

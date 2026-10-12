@@ -67,6 +67,37 @@ class RelatorioServiceTest {
         assertThrows(ResponseStatusException.class,()->service.consultar("contas-a-pagar",null,null,"","INVALIDO"));
         assertThrows(ResponseStatusException.class,()->service.consultar("../segredo",null,null,"",""));
     }
+    @Test void posicaoNaoApresentaSaldoAntigoComoEstoqueDePizzaPreparada() {
+        var p=new Produto("Pizza preparada","",30.0); p.setId(1L); p.setQuantidade(999.0); p.setPorIngredientes(true);
+        when(produtos.findAll()).thenReturn(List.of(p));
+        var r=service.consultar("estoque-posicao",null,null,"","");
+        assertEquals("Preparado",r.linhas().getFirst().celulas().get(2));
+        assertEquals("Pelos insumos",r.linhas().getFirst().celulas().get(3));
+        assertTrue(r.observacao().contains("sem descontar reservas"));
+    }
+    @Test void relatorioDeSaidasIncluiConsumoAutomaticoDeIngrediente() {
+        var i=new Insumo("Queijo",1.0,"kg");
+        var m=new MovimentoEstoque(dia.atStartOfDay(),"SAIDA",0.000001,null,i);
+        m.setOrigem("COMANDA"); m.setReferencia(42L);
+        when(movimentos.findAll()).thenReturn(List.of(m));
+        var r=service.consultar("estoque-saidas",dia,dia,"queijo","");
+        assertEquals(1,r.linhas().size());
+        assertEquals("Insumo",r.linhas().getFirst().celulas().get(2));
+        assertEquals("SAIDA / COMANDA (ID 42)",r.linhas().getFirst().celulas().get(3));
+        assertEquals("0,000001",r.linhas().getFirst().celulas().get(4));
+        assertEquals("kg",r.linhas().getFirst().celulas().get(5));
+    }
+    @Test void saidasIdentificamComandaPorDataENumeroDiarioNaoPorNumeroLegado() {
+        var repo=mock(ComandaRepository.class);
+        var c=new Comanda(); c.setId(42L); c.setNumero(1760834260); c.setNumeroDiario(3); c.setDataNumeracao(dia);
+        when(repo.findAll()).thenReturn(List.of(c));
+        var p=new Produto("Bebida","",5.0); var m=new MovimentoEstoque(dia.atStartOfDay(),"SAIDA",1,p,null);
+        m.setOrigem("COMANDA"); m.setReferencia(42L); when(movimentos.findAll()).thenReturn(List.of(m));
+        var servico=new RelatorioService(movimentos,produtos,insumos,transacoes,contas,repo);
+        var r=servico.consultar("estoque-saidas",null,null,"","");
+        assertEquals("SAIDA / COMANDA 06/10/2026 · #003",r.linhas().getFirst().celulas().get(3));
+        assertEquals(42L,m.getReferencia());
+    }
     @Test void csvEscapaAspasEFormulas() {
         var r=new RelatorioService.Resultado("Teste","","",List.of("Item"),List.of(new RelatorioService.Linha(List.of("=SUM(1;2)")),new RelatorioService.Linha(List.of("Pizza \"especial\""))),List.of());
         String csv=service.csv(r); assertTrue(csv.startsWith("\uFEFF")); assertTrue(csv.contains("\"'=SUM(1;2)\"")); assertTrue(csv.contains("Pizza \"\"especial\"\""));

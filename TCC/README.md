@@ -4,15 +4,18 @@ Versão do TCC desenvolvida localmente: React, Java/Spring Boot e PostgreSQL.
 
 ## Funcionalidades
 
-- Dashboard, pedidos presenciais, comandas e mesas.
+- Dashboard, pedidos presenciais, delivery, retirada, comandas e mesas.
 - Clientes, produtos, insumos, fornecedores e usuários.
 - Estoque: entradas, saídas e posição atual, com relatórios PDF e CSV.
 - Financeiro, contas a pagar e relatórios.
 - Login por sessão, senhas BCrypt, administrador, gerente e atendente.
-- Cadastro público de atendentes com confirmação de senha.
+- Cadastro público de atendentes com confirmação de senha e aprovação administrativa.
 - Faturamento de comandas com baixa de estoque e recebimento transacionais.
+- Fichas técnicas com consumo de ingredientes, reserva lógica de estoque e validação ao abrir pedidos.
+- Numeração curta e diária de comandas, preservando IDs e referências por data no histórico.
+- Interface com componentes Radix UI, listas pesquisáveis, formulários em painéis e identidade visual de pizza.
 
-Delivery e iFood são evoluções futuras, não integrações prontas. O cadastro público dá acesso operacional de atendente; antes de expor o site na internet, avalie aprovação de contas ou cadastro por convite.
+Delivery e retirada são modalidades internas disponíveis. A integração com iFood e pagamentos externos ainda não está implementada. Novas contas de atendente precisam de aprovação; as permissões também são verificadas no backend.
 
 ## Requisitos
 
@@ -47,7 +50,7 @@ Interface: `http://localhost:3000`. API padrão: `http://localhost:8080/api`. Pa
 Na pasta do backend (H2 temporário, sem alterar o PostgreSQL):
 
 ```powershell
-.\mvnw.cmd '-Dtest=PrioridadesIntegrationTest,RelatorioServiceTest,RelatorioControllerTest' test
+.\mvnw.cmd test
 ```
 
 Na pasta do frontend:
@@ -59,6 +62,12 @@ npm run build
 
 ## Documentação e limites
 
-Veja [Relatórios](RELATORIOS.md) e [Segurança e estoque](SEGURANCA_E_ESTOQUE.md). Swagger exige administrador. Em desenvolvimento o esquema é atualizado automaticamente; produção requer migrações planejadas, HTTPS, backups e proteção contra abuso. Esta versão não fornece configuração Docker compatível.
+Veja [Relatórios](RELATORIOS.md), [Segurança e estoque](SEGURANCA_E_ESTOQUE.md), [Fichas técnicas](FICHAS-TECNICAS-E-ESTOQUE.md), [Numeração diária](NUMERACAO-DIARIA-COMANDAS.md) e [Execução automática](EXECUCAO_AUTOMATICA.md). Swagger exige administrador. Em desenvolvimento o esquema é atualizado automaticamente; produção requer migrações planejadas, HTTPS, backups e proteção contra abuso. Esta versão não fornece configuração Docker compatível.
+
+## Demonstração externa e serviços locais
+
+Na pasta TCC, `./projeto.ps1 -Acao Iniciar` gerencia os serviços em segundo plano no Windows. Configure as variáveis de ambiente do banco antes de executá-lo. Use `-Acao Status`, `-Acao Reiniciar` ou `-Acao Parar` para gerenciamento. Não são incluídos banco de dados nem credenciais.
+
+O [compartilhamento ngrok](COMPARTILHAR-NGROK.md) é opcional: após autenticar o ngrok localmente, execute `./compartilhar.ps1 -Acao Iniciar`. Frontend compilado e API ficam no mesmo endereço, mantendo sessão, CSRF e perfis. `./compartilhar.ps1 -Acao Parar` encerra o túnel. Não há restrição adicional por e-mail; o login continua obrigatório. O link usa seu banco atual e não representa uma implantação de produção. Logs e builds de demonstração ficam em .dev-runtime, ignorada pelo Git.
 
 A versão anterior permanece recuperável no histórico Git, commit `dd0b0bc`.

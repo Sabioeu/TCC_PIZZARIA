@@ -38,6 +38,12 @@ public class TransacaoFinanceira {
     @JsonIgnoreProperties({"transacoes", "itens"})
     private Comanda comanda;
 
+    /** Referência atual de apresentação; a descrição histórica armazenada é preservada. */
+    public String getDescricaoExibicao() {
+        return comanda!=null && descricao!=null && descricao.startsWith("Faturamento da comanda ")
+                ? "Faturamento da comanda "+comanda.getReferenciaExibicao() : descricao;
+    }
+
     @ManyToOne
     @JoinColumn(name = "pedido_id") // Pode ser nulo se a transação não for de um pedido
     @JsonIgnoreProperties({"transacoes", "itens"})

@@ -30,4 +30,12 @@ public class ComandaCadastroDTO {
     private List<ItemComandaCadastroDTO> itens;
 
     private Integer mesaId;
+    private com.integrador.api.pizza.enums.TipoAtendimento tipoAtendimento;
+    @jakarta.validation.constraints.Size(max=255)
+    private String enderecoEntrega;
+    @jakarta.validation.constraints.Size(max=20)
+    private String telefoneContato;
+    @jakarta.validation.constraints.DecimalMin("0.00")
+    @jakarta.validation.constraints.Digits(integer=6, fraction=2)
+    private java.math.BigDecimal taxaEntrega;
 }

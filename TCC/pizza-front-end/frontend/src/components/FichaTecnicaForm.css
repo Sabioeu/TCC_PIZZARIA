@@ -1,0 +1,38 @@
+.ficha-loading { display: grid; min-height: 240px; gap: 20px; align-content: start; }
+.ficha-loading-message { display: grid; justify-items: center; gap: 10px; padding: 48px 20px; text-align: center; color: var(--ink-soft); font-size: 12px; }
+.ficha-loading-message strong { color: var(--ink); font-size: 14px; }
+.ficha-loading-message .icon { color: var(--primary); }
+.ficha-mode-note { display: flex; gap: 12px; align-items: flex-start; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #f8fafc; }
+.ficha-mode-note.is-active { border-color: #fed5b9; background: #fff7ef; }
+.ficha-mode-note > .icon { margin-top: 2px; flex: 0 0 auto; color: #b94b13; }
+.ficha-mode-note strong { display: block; font-size: 13px; }
+.ficha-mode-note p { margin: 5px 0 0; font-size: 12px; line-height: 1.65; color: var(--ink-soft); }
+.ficha-inactive-hint { margin: 0; }
+.ficha-ingredient-list { display: grid; gap: 14px; }
+.ficha-ingredient { min-width: 0; padding: 15px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.ficha-ingredient-top { display: flex; gap: 9px; align-items: center; margin-bottom: 14px; }
+.ficha-ingredient-number { display: grid; place-items: center; flex: 0 0 26px; height: 26px; border-radius: 8px; background: #fff0e3; color: #b74b0e; font-size: 11px; font-weight: 800; }
+.ficha-ingredient-top > strong { flex: 1; font-size: 12px; overflow-wrap: anywhere; }
+.ficha-ingredient-top .icon-button { width: 34px; height: 34px; color: var(--red); }
+.ficha-ingredient-fields { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 13px; }
+.ficha-ingredient-fields .cadastro-label-row { flex-wrap: wrap; gap: 3px 8px; }
+.ficha-add-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.ficha-empty { display: grid; justify-items: center; gap: 9px; padding: 26px 20px; border: 1px dashed #e8cbb4; border-radius: 13px; text-align: center; color: var(--ink-soft); font-size: 12px; }
+.ficha-empty .icon { color: #c55516; }
+.ficha-empty strong { color: var(--ink); }
+.ficha-summary { padding: 18px; border: 1px solid #cde8dc; border-radius: 14px; background: #f3fbf7; }
+.ficha-summary-heading { display: flex; gap: 11px; align-items: center; color: #176647; }
+.ficha-summary-heading strong { display: block; font-size: 13px; }
+.ficha-summary-heading span { display: block; margin-top: 3px; color: var(--ink-soft); font-size: 12px; }
+.ficha-summary ul { display: grid; gap: 9px; margin: 17px 0; padding: 0; list-style: none; }
+.ficha-summary li { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
+.ficha-summary li strong { white-space: nowrap; }
+.ficha-summary p { margin: 0; color: var(--ink-soft); font-size: 11px; line-height: 1.6; }
+.ficha-mode-badge { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; font-size: 10px; font-weight: 700; white-space: nowrap; background: #f8fafc; color: var(--ink-soft); }
+.ficha-mode-badge.is-active { background: #ecf9f2; color: #196347; border-color: #cde8dc; }
+.ficha-table-button { gap: 6px; min-height: 34px; padding: 6px 10px; font-size: 11px; white-space: nowrap; }
+@media (max-width: 600px) {
+  .ficha-ingredient-fields { grid-template-columns: 1fr; }
+  .ficha-ingredient-top .icon-button { width: 44px; height: 44px; }
+  .ficha-add-row .button { min-height: 44px; }
+}

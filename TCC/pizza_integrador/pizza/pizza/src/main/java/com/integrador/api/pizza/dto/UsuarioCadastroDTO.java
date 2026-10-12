@@ -15,4 +15,5 @@ public class UsuarioCadastroDTO {
     @NotBlank(message = "O email é obrigatório") @Email(message = "Formato de email inválido") @Size(max = 100, message = "O email não pode ter mais de 100 caracteres") private String email;
     @NotBlank(groups = Novo.class, message = "A senha é obrigatória") @Size(min = 8, max = 72, message = "A senha deve ter entre 8 e 72 caracteres") private String senha;
     @NotNull(message = "O perfil é obrigatório") private PerfilUsuario perfil;
+    private Boolean ativo;
 }

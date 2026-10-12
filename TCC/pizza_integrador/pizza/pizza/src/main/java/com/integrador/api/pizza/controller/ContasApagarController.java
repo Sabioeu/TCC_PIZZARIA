@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import jakarta.validation.Valid;
 
 
 @RestController
@@ -25,7 +26,7 @@ public class ContasApagarController {
     }
 
     @PostMapping
-    public ResponseEntity<List<ContaAPagar>> salvar(@RequestBody ContaInputDTO dto) {
+    public ResponseEntity<List<ContaAPagar>> salvar(@Valid @RequestBody ContaInputDTO dto) {
         return ResponseEntity.ok(service.criarContas(dto));
     }
 
@@ -36,7 +37,7 @@ public class ContasApagarController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ContaAPagar> atualizar(@PathVariable Long id, @RequestBody ContaAtualizacaoDTO dto) {
+    public ResponseEntity<ContaAPagar> atualizar(@PathVariable Long id, @Valid @RequestBody ContaAtualizacaoDTO dto) {
         return ResponseEntity.ok(service.atualizar(id, dto));
     }
 

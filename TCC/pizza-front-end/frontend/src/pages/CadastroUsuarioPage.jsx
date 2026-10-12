@@ -1,34 +1,71 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import UsuarioForm from '../components/UsuarioForm';
 import Icon from '../components/Icon';
 import PageHeader from '../components/PageHeader';
+import DataTable from '../components/DataTable';
+import ConfirmDialog from '../components/ConfirmDialog';
+import CadastroDrawer from '../components/CadastroDrawer';
+import { useToast } from '../components/ToastProvider';
+import { apiErrorMessage } from '../utils/apiError';
 import api from '../api/api';
 
-const CadastroUsuarioPage = () => {
-  const [usuarios, setUsuarios] = useState([]);
-  const [editando, setEditando] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const carregar = useCallback(async () => { setLoading(true); setError(''); try { const response = await api.get('/usuarios'); setUsuarios(response.data || []); } catch (err) { console.error(err); setError('Não foi possível carregar os usuários.'); } finally { setLoading(false); } }, []);
-  useEffect(() => { carregar(); }, [carregar]);
-  const excluir = async (usuario) => { if (!window.confirm(`Excluir o usuário "${usuario.nome}"?`)) return; try { await api.delete(`/usuarios/${usuario.id}`); setUsuarios((atuais) => atuais.filter((item) => item.id !== usuario.id)); } catch (err) { console.error(err); setError('Não foi possível excluir o usuário.'); } };
 
-  const salvarEdicao = (item) => {
-    if (item) setUsuarios((atuais) => atuais.map((current) => current.id === item.id ? item : current));
-    setEditando(null);
+const CadastroUsuarioPage = () => {
+  const [registros, setRegistros] = useState([]);
+  const [editando, setEditando] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [formSaving, setFormSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [exclusao, setExclusao] = useState(null);
+  const [excluindo, setExcluindo] = useState(false);
+  const [erroExclusao, setErroExclusao] = useState('');
+  const bloqueioExclusao = useRef(false);
+  const { notify } = useToast();
+
+  const carregar = useCallback(async () => {
+    setLoading(true); setError('');
+    try { const response = await api.get('/usuarios'); setRegistros(response.data || []); }
+    catch (err) { setError(apiErrorMessage(err, 'Não foi possível carregar usuários. Tente novamente.')); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  const abrirCadastro = (item = null) => {
+    if (formSaving || excluindo) return;
+    setEditando(item); setFormOpen(true);
+  };
+  const fecharCadastro = () => {
+    if (formSaving) return;
+    setFormOpen(false); setEditando(null);
   };
 
-  return (
-    <div className="page-stack">
-      <PageHeader description="Gerencie colaboradores e os níveis de acesso utilizados no atendimento." eyebrow="Configurações" title="Usuários" />
-      <section className="split-layout">
-        <article className="panel sticky-panel"><div className="panel-header"><div><h2 className="panel-title">{editando ? 'Editar usuário' : 'Novo usuário'}</h2><p className="panel-subtitle">{editando ? `Alterando o registro #${editando.id}` : 'Cadastre um colaborador'}</p></div>{editando && <span className="status-badge status-info">Editando</span>}</div><div className="panel-body"><UsuarioForm onCadastroSucesso={(item) => setUsuarios((atuais) => [...atuais, item])} onEdicaoSucesso={salvarEdicao} usuarioParaEdicao={editando} /></div></article>
-        <article className="panel"><div className="panel-header"><div><h2 className="panel-title">Equipe cadastrada</h2><p className="panel-subtitle">{usuarios.length} usuários encontrados</p></div></div>{error && <div className="panel-body"><div className="alert alert-error">{error}</div></div>}{loading ? <Loading /> : usuarios.length === 0 ? <Empty /> : <div className="table-wrap"><table className="data-table"><thead><tr><th>Colaborador</th><th>E-mail</th><th>Perfil</th><th style={{ textAlign: 'right' }}>Ações</th></tr></thead><tbody>{usuarios.map((usuario) => <tr key={usuario.id}><td><span className="cell-title">{usuario.nome}</span><span className="cell-subtitle">ID #{usuario.id}</span></td><td>{usuario.email}</td><td><span className="status-badge status-info">{usuario.perfil}</span></td><ActionCell onDelete={() => excluir(usuario)} onEdit={() => setEditando(usuario)} /></tr>)}</tbody></table></div>}</article>
-      </section>
-    </div>
-  );
+  const excluir = async () => {
+    if (!exclusao || bloqueioExclusao.current) return;
+    bloqueioExclusao.current = true; setExcluindo(true); setErroExclusao('');
+    try {
+      await api.delete(`/usuarios/${exclusao.id}`);
+      setRegistros((atuais) => atuais.filter((item) => item.id !== exclusao.id));
+      if (editando?.id === exclusao.id) setEditando(null);
+      setExclusao(null); notify('Usuário excluído.', { type: 'success' });
+    } catch (err) { setErroExclusao(apiErrorMessage(err, 'Não foi possível excluir o usuário.')); }
+    finally { bloqueioExclusao.current = false; setExcluindo(false); }
+  };
+  const columns = [
+    { key: 'nome', label: 'Colaborador', render: (item) => <><span className="cell-title">{item.nome}</span><span className="cell-subtitle">ID #{item.id}</span></> },
+    { key: 'email', label: 'E-mail' },
+    { key: 'perfil', label: 'Perfil', render: (item) => <span className="status-badge status-info">{item.perfil}</span> },
+    { key: 'ativo', label: 'Acesso', value: (item) => item.ativo === false ? 'Bloqueado' : 'Liberado', render: (item) => <span className={`status-badge ${item.ativo === false ? 'status-warning' : 'status-success'}`}>{item.ativo === false ? 'Aguardando aprovação / bloqueado' : 'Liberado'}</span> },
+    { key: 'acoes', label: 'Ações', sortable: false, align: 'right', render: (item) => <div className="table-actions"><button aria-label={`Editar usuário ${item.nome}`} title="Editar usuário" className="icon-button" disabled={excluindo || formSaving} onClick={() => abrirCadastro(item)} type="button"><Icon name="edit" size={15} /></button><button aria-label={`Excluir usuário ${item.nome}`} title="Excluir usuário" className="icon-button" disabled={excluindo || formSaving} onClick={() => { setExclusao(item); setErroExclusao(''); }} style={{ color: 'var(--red)' }} type="button"><Icon name="trash" size={15} /></button></div> },
+  ];
+
+  return <div className="page-stack">
+    <PageHeader description="Gerencie colaboradores e os níveis de acesso utilizados no atendimento." eyebrow="Configurações" title="Usuários" actions={<button className="button button-primary" disabled={excluindo || formSaving} onClick={() => abrirCadastro()} type="button"><Icon name="plus" size={18} /> Novo usuário</button>} />
+    <DataTable title="Equipe cadastrada" description="Consulte os perfis e aprove ou bloqueie o acesso na edição do usuário." rows={registros} columns={columns} searchKeys={['nome', 'email', 'perfil', (item) => item.ativo === false ? 'bloqueado aprovação' : 'liberado', 'id']} searchPlaceholder="Buscar nome, e-mail ou perfil" loading={loading} error={error} onRetry={carregar} defaultSort={{ key: 'nome', direction: 'asc' }} emptyTitle="Nenhum usuário cadastrado" emptyDescription="Clique em Novo usuário para cadastrar um colaborador. As solicitações de acesso também aparecerão aqui." />
+    {formOpen && <CadastroDrawer title={editando ? 'Editar usuário' : 'Novo usuário'} subtitle={editando ? `Revise os dados e as permissões do registro #${editando.id}.` : 'Cadastre um colaborador e defina suas permissões de acesso.'} busy={formSaving} onClose={fecharCadastro}>
+      <UsuarioForm onCancel={fecharCadastro} onSavingChange={setFormSaving} usuarioParaEdicao={editando} onCadastroSucesso={(item) => { setRegistros((atuais) => [...atuais, item]); setFormOpen(false); setEditando(null); }} onEdicaoSucesso={(item) => { if (item) setRegistros((atuais) => atuais.map((current) => current.id === item.id ? item : current)); setFormOpen(false); setEditando(null); }} />
+    </CadastroDrawer>}
+    {exclusao && <ConfirmDialog title="Excluir usuário?" description={`O cadastro de ${exclusao.nome} será removido. A conta perderá o acesso ao sistema. Vínculos existentes podem impedir a exclusão.`} confirmLabel="Excluir usuário" onCancel={() => setExclusao(null)} onConfirm={excluir} busy={excluindo} error={erroExclusao} />}
+  </div>;
 };
-const Loading = () => <div className="loading-state"><div><div className="spinner" />Carregando...</div></div>;
-const Empty = () => <div className="empty-state"><div><div className="empty-state-icon"><Icon name="users" /></div><strong>Nenhum usuário</strong><p>A equipe cadastrada aparecerá aqui.</p></div></div>;
-const ActionCell = ({ onDelete, onEdit }) => <td><div className="table-actions"><button aria-label="Editar" className="icon-button" onClick={onEdit} type="button"><Icon name="edit" size={15} /></button><button aria-label="Excluir" className="icon-button" onClick={onDelete} style={{ color: 'var(--red)' }} type="button"><Icon name="trash" size={15} /></button></div></td>;
 export default CadastroUsuarioPage;

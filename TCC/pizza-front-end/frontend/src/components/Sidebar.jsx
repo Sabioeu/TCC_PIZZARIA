@@ -38,7 +38,8 @@ const Sidebar = ({ open, onClose }) => {
   const { usuario, sair } = useAuth();
   const [saindo, setSaindo] = React.useState(false);
   const [erro, setErro] = React.useState('');
-  const logout = async () => { setSaindo(true); setErro(''); try { await sair(); } catch { setErro('Não foi possível sair. Tente novamente.'); } finally { setSaindo(false); } };
+  const operacao = React.useRef(false);
+  const logout = async () => { if (operacao.current) return; operacao.current = true; setSaindo(true); setErro(''); try { await sair(); } catch { setErro('Não foi possível sair. Tente novamente.'); } finally { operacao.current = false; setSaindo(false); } };
   return (
   <aside className={`sidebar ${open ? 'open' : ''}`}>
     <div className="brand-block">
@@ -47,7 +48,7 @@ const Sidebar = ({ open, onClose }) => {
         <strong>Modelos Pizza</strong>
         <span>Gestão inteligente</span>
       </div>
-      <button aria-label="Fechar menu" className="icon-button sidebar-close" onClick={onClose}>
+      <button aria-label="Fechar menu" type="button" className="icon-button sidebar-close" onClick={onClose}>
         <Icon name="close" />
       </button>
     </div>
@@ -59,7 +60,7 @@ const Sidebar = ({ open, onClose }) => {
           <ul className="nav-list">
             {section.items.map((item) => (
               <li key={item.to}>
-                <NavLink className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} end={item.end} to={item.to}>
+                <NavLink className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} end={item.end} to={item.to} onClick={onClose}>
                   <Icon name={item.icon} />
                   <span>{item.label}</span>
                 </NavLink>
@@ -72,7 +73,7 @@ const Sidebar = ({ open, onClose }) => {
 
     <div className="sidebar-footer">
       <div className="user-chip">
-        <div className="user-avatar">MP</div>
+        <div className="user-avatar" aria-hidden="true">{(usuario?.nome || 'MP').split(/\s+/).filter(Boolean).slice(0, 2).map((parte) => parte[0]).join('').toUpperCase()}</div>
         <div className="user-meta">
             <strong>{usuario?.nome}</strong>
             <span>{usuario?.perfil}</span>

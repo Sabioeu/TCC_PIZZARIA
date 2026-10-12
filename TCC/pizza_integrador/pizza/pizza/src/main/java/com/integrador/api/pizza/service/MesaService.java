@@ -53,7 +53,7 @@ public class MesaService {
             mesa.setCapacidade(dadosNovos.getCapacidade());
 
             return repository.save(mesa);
-        }).orElseThrow(() -> new RuntimeException("Mesa não encontrada com ID: " + id));
+        }).orElseThrow(() -> new IllegalArgumentException("Mesa não encontrada com ID: " + id));
     }
 
     /**
@@ -61,6 +61,6 @@ public class MesaService {
      */
     public Mesa buscarPorId(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Mesa não encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException("Mesa não encontrada"));
     }
 }

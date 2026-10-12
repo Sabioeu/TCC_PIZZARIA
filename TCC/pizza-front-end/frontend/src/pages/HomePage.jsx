@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/api';
 import Icon from '../components/Icon';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { useAuth } from '../auth/AuthContext';
+import './Dashboard.css';
 
 const emptyDashboard = {
   faturamentoHoje: 0,
@@ -24,20 +26,32 @@ const emptyDashboard = {
 const paymentColors = ['#e86419', '#3578e5', '#169b62', '#c97b13', '#8b5cf6'];
 
 const HomePage = () => {
+  const { usuario } = useAuth() || {};
+  const requisicaoEmCurso = useRef(false);
   const [dashboard, setDashboard] = useState(emptyDashboard);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null);
+  const [diaSelecionado, setDiaSelecionado] = useState(null);
+  const [pagamentoSelecionado, setPagamentoSelecionado] = useState(null);
 
   const carregarDashboard = useCallback(async () => {
+    if (requisicaoEmCurso.current) return;
+    requisicaoEmCurso.current = true;
     setLoading(true);
     setError('');
     try {
       const response = await api.get('/dashboard/resumo');
-      setDashboard({ ...emptyDashboard, ...response.data });
-    } catch (err) {
-      console.error('Erro ao carregar dashboard:', err);
+      const dados = { ...emptyDashboard, ...response.data };
+      ['faturamentoSemanal', 'meiosPagamento', 'atividadesRecentes'].forEach((campo) => {
+        if (!Array.isArray(dados[campo])) dados[campo] = [];
+      });
+      setDashboard(dados);
+      setUltimaAtualizacao(new Date().toISOString());
+    } catch {
       setError('Não foi possível atualizar os indicadores. Confirme se o servidor está em execução.');
     } finally {
+      requisicaoEmCurso.current = false;
       setLoading(false);
     }
   }, []);
@@ -66,14 +80,20 @@ const HomePage = () => {
   }, [dashboard.meiosPagamento, paymentTotal]);
 
   const greeting = new Date().getHours() < 12 ? 'Bom dia' : new Date().getHours() < 18 ? 'Boa tarde' : 'Boa noite';
+  const nomeSaudacao = usuario?.nome?.trim().split(/\s+/)[0] || 'equipe';
   const occupiedTotal = dashboard.mesasDisponiveis + dashboard.mesasOcupadas;
+  const diaEmDestaque = dashboard.faturamentoSemanal.find((item) => item.data === diaSelecionado)
+    || dashboard.faturamentoSemanal[dashboard.faturamentoSemanal.length - 1];
+  const pagamentoEmDestaque = dashboard.meiosPagamento.find((item) => item.tipo === pagamentoSelecionado);
+  const percentualPagamento = (item) => paymentTotal ? Math.round((Number(item.valor) / paymentTotal) * 100) : 0;
+  const recebimentos = dashboard.meiosPagamento.reduce((sum, item) => sum + (Number(item.quantidade) || 0), 0);
 
   return (
     <div className="page-stack">
       <section className="dashboard-hero">
         <div className="dashboard-hero-copy">
           <span className="page-eyebrow">Central de operações</span>
-          <h1>{greeting}, equipe!</h1>
+          <h1>{greeting}, {nomeSaudacao}!</h1>
           <p>Uma visão objetiva do salão, das vendas e dos compromissos financeiros da Modelos Pizza.</p>
         </div>
         <Link className="button button-primary button-lg" to="/pedidos">
@@ -82,11 +102,20 @@ const HomePage = () => {
         </Link>
       </section>
 
+      <div className="dashboard-refresh-row">
+        <div className="dashboard-refresh-copy" aria-live="polite">
+          <Icon name="clock" size={15} />
+          <span>{loading ? 'Atualizando indicadores...' : ultimaAtualizacao ? <>Atualizado em <time dateTime={ultimaAtualizacao}>{formatDate(ultimaAtualizacao, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time></> : 'Indicadores ainda não carregados'}</span>
+          {ultimaAtualizacao && <small>Atualização manual</small>}
+        </div>
+        <button className="button" aria-busy={loading} disabled={loading} onClick={carregarDashboard} type="button"><Icon name="refresh" size={16} />Atualizar indicadores</button>
+      </div>
+
       {error && (
-        <div className="alert alert-error">
+        <div className="alert alert-error" role="alert">
           <Icon name="alert" size={17} />
           <span>{error}</span>
-          <button className="button button-sm" onClick={carregarDashboard} type="button">Tentar novamente</button>
+          <button className="button button-sm" disabled={loading} onClick={carregarDashboard} type="button">Tentar novamente</button>
         </div>
       )}
 
@@ -135,24 +164,30 @@ const HomePage = () => {
             <span className="status-badge status-success">{formatCurrency(dashboard.faturamentoMes)} no mês</span>
           </div>
           <div className="panel-body">
-            {loading ? <LoadingBlock /> : (
-              <div className="bar-chart" aria-label="Gráfico de faturamento semanal">
+            {loading ? <LoadingBlock /> : dashboard.faturamentoSemanal.length === 0 ? (
+              <div className="empty-state"><div><strong>Sem dados de faturamento no período</strong><p>Atualize o painel após confirmar novos recebimentos.</p></div></div>
+            ) : (
+              <>
+              <div className="dashboard-chart-detail" role="status" aria-live="polite"><span>{formatDate(diaEmDestaque.data, { weekday: 'long', day: '2-digit', month: '2-digit' })}</span><strong>{formatCurrency(diaEmDestaque.valor)}</strong></div>
+              <div className="bar-chart dashboard-weekly-chart" role="group" aria-label="Gráfico de faturamento semanal" style={{ gridTemplateColumns: `repeat(${dashboard.faturamentoSemanal.length}, minmax(0, 1fr))` }}>
                 {(dashboard.faturamentoSemanal || []).map((item) => {
                   const percentage = Math.max(2, ((Number(item.valor) || 0) / maxWeeklyValue) * 100);
                   return (
-                    <div className="bar-column" key={item.data}>
-                      <div className="bar-track">
-                        <div
+                    <button type="button" className={`bar-column dashboard-bar-button ${diaEmDestaque.data === item.data ? 'selected' : ''}`} key={item.data} aria-label={`${formatDate(item.data, { weekday: 'long', day: '2-digit', month: '2-digit' })}: ${formatCurrency(item.valor)}`} aria-pressed={diaEmDestaque.data === item.data} aria-describedby="dashboard-chart-help" onClick={() => setDiaSelecionado(item.data)} onFocus={() => setDiaSelecionado(item.data)}>
+                      <span className="bar-track" aria-hidden="true">
+                        <span
                           className="bar-fill"
                           data-value={formatCurrency(item.valor)}
                           style={{ height: `${percentage}%` }}
                         />
-                      </div>
-                      <span className="bar-label">{String(item.rotulo || '').replace('.', '')}</span>
-                    </div>
+                      </span>
+                      <span className="bar-label" aria-hidden="true">{String(item.rotulo || '').replace('.', '')}</span>
+                    </button>
                   );
                 })}
               </div>
+              <p className="dashboard-chart-help" id="dashboard-chart-help">Clique, toque ou navegue com Tab para consultar cada dia.</p>
+              </>
             )}
           </div>
         </article>
@@ -168,23 +203,26 @@ const HomePage = () => {
             {loading ? <LoadingBlock /> : (
               <>
                 <div className="donut-content">
-                  <div className="donut" style={{ background: donutBackground }}>
+                  <div className="donut" aria-hidden="true" style={{ background: donutBackground }}>
                     <div className="donut-center">
-                      <strong>{dashboard.meiosPagamento.reduce((sum, item) => sum + item.quantidade, 0)}</strong>
-                      <span>recebimentos</span>
+                      <strong>{pagamentoEmDestaque ? `${percentualPagamento(pagamentoEmDestaque)}%` : recebimentos}</strong>
+                      <span>{pagamentoEmDestaque ? paymentLabel(pagamentoEmDestaque.tipo) : 'recebimentos'}</span>
                     </div>
                   </div>
                 </div>
-                <div className="chart-legend">
+                <div className="dashboard-payment-summary"><span>{recebimentos} {recebimentos === 1 ? 'recebimento' : 'recebimentos'} no mês</span><strong>{formatCurrency(paymentTotal)}</strong></div>
+                <div className="dashboard-payment-legend" role="group" aria-label="Valores por meio de pagamento">
                   {dashboard.meiosPagamento.length === 0 ? (
                     <span className="legend-item">Sem vendas registradas neste mês</span>
                   ) : dashboard.meiosPagamento.map((item, index) => (
-                    <span className="legend-item" key={item.tipo}>
-                      <i className="legend-dot" style={{ background: paymentColors[index % paymentColors.length] }} />
-                      {paymentLabel(item.tipo)} · {paymentTotal ? Math.round((Number(item.valor) / paymentTotal) * 100) : 0}%
-                    </span>
+                    <button className={`dashboard-payment-row ${pagamentoEmDestaque?.tipo === item.tipo ? 'selected' : ''}`} key={item.tipo} type="button" aria-pressed={pagamentoEmDestaque?.tipo === item.tipo} onFocus={() => setPagamentoSelecionado(item.tipo)} onClick={() => setPagamentoSelecionado(item.tipo)}>
+                      <i aria-hidden="true" className="legend-dot" style={{ background: paymentColors[index % paymentColors.length] }} />
+                      <span className="dashboard-payment-label">{paymentLabel(item.tipo)}<small>{Number(item.quantidade) || 0} {(Number(item.quantidade) || 0) === 1 ? 'recebimento' : 'recebimentos'}</small></span>
+                      <strong>{formatCurrency(item.valor)}</strong><span className="dashboard-payment-percent">{percentualPagamento(item)}%</span>
+                    </button>
                   ))}
                 </div>
+                {pagamentoEmDestaque && <button className="button button-ghost button-sm dashboard-payment-reset" onClick={() => setPagamentoSelecionado(null)} type="button">Ver total de recebimentos</button>}
               </>
             )}
           </div>
@@ -242,14 +280,14 @@ const HomePage = () => {
               <h2 className="panel-title">Atividades recentes</h2>
               <p className="panel-subtitle">Últimos recebimentos confirmados</p>
             </div>
-            <button aria-label="Atualizar painel" className="icon-button" onClick={carregarDashboard} type="button">
+            <button aria-label="Atualizar painel" className="icon-button" disabled={loading} onClick={carregarDashboard} type="button">
               <Icon name="refresh" size={17} />
             </button>
           </div>
           <div className="panel-body activity-list">
-            {dashboard.atividadesRecentes.length === 0 ? (
+            {loading ? <LoadingBlock /> : dashboard.atividadesRecentes.length === 0 ? (
               <div className="empty-state" style={{ minHeight: 170 }}>
-                <div><strong>Nenhuma atividade recente</strong><p>Os novos faturamentos aparecerão aqui.</p></div>
+                <div><strong>Nenhuma atividade recente</strong><p>Atualize o painel para consultar novos faturamentos.</p></div>
               </div>
             ) : dashboard.atividadesRecentes.map((atividade) => (
               <div className="activity-item" key={atividade.id}>

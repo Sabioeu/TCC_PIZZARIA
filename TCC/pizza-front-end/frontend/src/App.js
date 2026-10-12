@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import './App.css';
+import ErrorBoundary from './components/ErrorBoundary';
+import { ToastProvider } from './components/ToastProvider';
 
 import { AuthProvider } from './auth/AuthContext';
 import ProtectedLayout from './auth/ProtectedLayout';
@@ -21,7 +23,7 @@ import ContasAPagarPage from './pages/ContasAPagarPage';
 
 function App() {
   return (
-    <AuthProvider><BrowserRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
+    <ErrorBoundary><ToastProvider><AuthProvider><BrowserRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
       <Routes>
         <Route element={<LoginPage />} path="/login" />
         <Route element={<ProtectedLayout />} path="/">
@@ -41,7 +43,7 @@ function App() {
           <Route element={<HomePage />} path="*" />
         </Route>
       </Routes>
-    </BrowserRouter></AuthProvider>
+    </BrowserRouter></AuthProvider></ToastProvider></ErrorBoundary>
   );
 }
 

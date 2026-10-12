@@ -16,7 +16,7 @@ public class SessaoAtualizadaFilter extends OncePerRequestFilter {
         if(auth!=null && auth.getPrincipal() instanceof UsuarioAutenticado anterior) {
             var usuario=usuarios.findById(anterior.getId());
             // O hash é preservado no principal para invalidar sessões após troca de senha.
-            if(usuario.isEmpty() || !java.util.Objects.equals(usuario.get().getSenha(),anterior.hashOriginal())) {
+            if(usuario.isEmpty() || !usuario.get().acessoLiberado() || !java.util.Objects.equals(usuario.get().getSenha(),anterior.hashOriginal())) {
                 SecurityContextHolder.clearContext(); if(req.getSession(false)!=null) req.getSession(false).invalidate();
             } else {
                 var atual=new UsuarioAutenticado(usuario.get());

@@ -16,6 +16,7 @@ public class InsumoService {
     @Autowired
     private InsumoRepository repository;
     @Autowired private MovimentoEstoqueService movimentos;
+    @Autowired private com.integrador.api.pizza.repository.ComponenteFichaTecnicaRepository componentes;
 
     @Transactional
     public Insumo cadastrarInsumo(InsumoCadastroDTO dados) {
@@ -45,10 +46,13 @@ public class InsumoService {
             registrarAjuste(insumoExistente,dados.getQuantidade());
             insumoExistente.setUnidade(dados.getUnidade());
             return repository.save(insumoExistente);
-        }).orElseThrow(() -> new RuntimeException("Insumo não encontrado com ID: " + id));
+        }).orElseThrow(() -> new IllegalArgumentException("Insumo não encontrado com ID: " + id));
     }
 
+    @Transactional
     public void deletarInsumo(Long id) {
+        repository.buscarParaAtualizar(id).orElseThrow(() -> new IllegalArgumentException("Insumo não encontrado."));
+        if(componentes.existsByInsumoId(id)) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Este insumo pertence a uma ficha técnica. Remova-o das fichas antes de excluir; o histórico de vendas continua protegido.");
         repository.deleteById(id);
     }
     private void registrarAjuste(Insumo insumo, Double desejada) {

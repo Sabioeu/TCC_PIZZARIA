@@ -1,51 +1,51 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Select from '../components/Select';
+import DataTable from '../components/DataTable';
 import api from '../api/api';
 import Icon from '../components/Icon';
 import PageHeader from '../components/PageHeader';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate, localDate, comandaReference, comandaNumber } from '../utils/formatters';
+import { apiErrorMessage } from '../utils/apiError';
 
-const TransacoesFinanceirasPage = () => {
+const paymentLabel = (type) => ({ CREDITO: 'Crédito', DEBITO: 'Débito', DINHEIRO: 'Dinheiro', PIX: 'Pix' }[type] || type);
+export default function TransacoesFinanceirasPage() {
   const [transacoes, setTransacoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tipo, setTipo] = useState('');
-
+  const [inicio, setInicio] = useState('');
+  const [fim, setFim] = useState('');
   const carregar = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await api.get('/transacoes');
-      setTransacoes((response.data || []).sort((a, b) => new Date(b.dataHora) - new Date(a.dataHora)));
-    } catch (err) {
-      console.error('Erro ao buscar transações:', err);
-      setError('Não foi possível carregar o histórico financeiro.');
-    } finally { setLoading(false); }
+    setLoading(true); setError('');
+    try { const response = await api.get('/transacoes'); setTransacoes(response.data || []); }
+    catch (error) { setError(apiErrorMessage(error, 'Não foi possível carregar o histórico financeiro.')); }
+    finally { setLoading(false); }
   }, []);
-
   useEffect(() => { carregar(); }, [carregar]);
-
   const tipos = useMemo(() => [...new Set(transacoes.map((item) => item.tipo).filter(Boolean))], [transacoes]);
-  const filtradas = useMemo(() => transacoes.filter((item) => !tipo || item.tipo === tipo), [tipo, transacoes]);
-  const total = useMemo(() => filtradas.reduce((sum, item) => sum + Number(item.valor || 0), 0), [filtradas]);
-  const hoje = new Date().toISOString().slice(0, 10);
-  const totalHoje = useMemo(() => transacoes.filter((item) => item.dataHora?.startsWith(hoje)).reduce((sum, item) => sum + Number(item.valor || 0), 0), [hoje, transacoes]);
-
-  return (
-    <div className="page-stack">
-      <PageHeader actions={<button className="button" onClick={carregar} type="button"><Icon name="refresh" size={16} /> Atualizar</button>} description="Consulte os recebimentos gerados pelo faturamento das comandas." eyebrow="Financeiro" title="Registros financeiros" />
-      <section className="summary-grid">
-        <div className="summary-card success"><small>Recebido hoje</small><strong>{formatCurrency(totalHoje)}</strong></div>
-        <div className="summary-card"><small>Total exibido</small><strong>{formatCurrency(total)}</strong></div>
-        <div className="summary-card"><small>Registros</small><strong>{filtradas.length}</strong></div>
-      </section>
-      {error && <div className="alert alert-error"><Icon name="alert" size={17} />{error}</div>}
-      <section className="panel">
-        <div className="panel-header" style={{ alignItems: 'center' }}><div><h2 className="panel-title">Histórico de recebimentos</h2><p className="panel-subtitle">Ordenado das movimentações mais recentes para as mais antigas</p></div><select className="field-control" onChange={(event) => setTipo(event.target.value)} style={{ width: 175 }} value={tipo}><option value="">Todos os meios</option>{tipos.map((item) => <option key={item} value={item}>{paymentLabel(item)}</option>)}</select></div>
-        {loading ? <div className="loading-state"><div><div className="spinner" />Carregando histórico...</div></div> : filtradas.length === 0 ? <div className="empty-state"><div><div className="empty-state-icon"><Icon name="finance" /></div><strong>Nenhuma transação</strong><p>Os faturamentos concluídos serão apresentados aqui.</p></div></div> : <div className="table-wrap"><table className="data-table"><thead><tr><th>Data e hora</th><th>Descrição</th><th>Pagamento</th><th>Comanda</th><th>Valor</th></tr></thead><tbody>{filtradas.map((transacao) => <tr key={transacao.id}><td>{formatDate(transacao.dataHora, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td><td><span className="cell-title">{transacao.descricao || 'Recebimento registrado'}</span><span className="cell-subtitle">Transação #{transacao.id}</span></td><td><span className="status-badge status-success">{paymentLabel(transacao.tipo)}</span></td><td>{transacao.comanda ? `#${transacao.comanda.numero}` : '—'}</td><td><span className="cell-title">{formatCurrency(transacao.valor)}</span></td></tr>)}</tbody></table></div>}
-      </section>
-    </div>
-  );
-};
-
-const paymentLabel = (type) => ({ CREDITO: 'Crédito', DEBITO: 'Débito', DINHEIRO: 'Dinheiro', PIX: 'Pix' }[type] || type);
-export default TransacoesFinanceirasPage;
+  const periodoInvalido = inicio && fim && inicio > fim;
+  const filtradas = useMemo(() => transacoes.filter((item) => {
+    const data = (item.dataHora || '').slice(0, 10);
+    return (!tipo || item.tipo === tipo) && (!inicio || data >= inicio) && (!fim || data <= fim);
+  }), [tipo, transacoes, inicio, fim]);
+  const total = filtradas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+  const hoje = localDate(new Date());
+  const totalHoje = transacoes.filter((item) => item.dataHora?.startsWith(hoje)).reduce((sum, item) => sum + Number(item.valor || 0), 0);
+  const reset = () => { setTipo(''); setInicio(''); setFim(''); };
+  return <div className="page-stack">
+    <PageHeader actions={<button className="button" disabled={loading} onClick={carregar} type="button"><Icon name="refresh" size={16} /> Atualizar</button>} description="Consulte os recebimentos de comandas faturadas. Despesas e saldo da operação estão no relatório financeiro." eyebrow="Financeiro" title="Registros financeiros" />
+    <section className="summary-grid"><div className="summary-card success"><small>Recebido hoje</small><strong>{formatCurrency(totalHoje)}</strong></div><div className="summary-card"><small>Recebimentos no período filtrado</small><strong>{formatCurrency(total)}</strong></div><div className="summary-card"><small>Registros no período filtrado</small><strong>{filtradas.length}</strong></div></section>
+    <DataTable title="Histórico de recebimentos" description="Busque uma descrição ou comanda; clique nos títulos para ordenar." rows={periodoInvalido ? [] : filtradas} loading={loading} error={periodoInvalido ? 'A data inicial deve ser anterior ou igual à final.' : error} onRetry={error ? carregar : undefined} searchKeys={['descricao', 'descricaoExibicao', 'id', 'comanda.numero', (item) => item.comanda ? comandaReference(item.comanda) : '', (item) => paymentLabel(item.tipo)]} searchPlaceholder="Buscar descrição, comanda ou pagamento..." defaultSort={{ key: 'dataHora', direction: 'desc' }} emptyTitle="Nenhuma transação" emptyDescription="Ajuste os filtros ou conclua o faturamento de uma comanda." toolbar={<>
+      <div className="compact-field"><label htmlFor="finance-inicio">De</label><input id="finance-inicio" type="date" className="field-control" value={inicio} onChange={(event) => setInicio(event.target.value)} /></div>
+      <div className="compact-field"><label htmlFor="finance-fim">Até</label><input id="finance-fim" type="date" className="field-control" value={fim} onChange={(event) => setFim(event.target.value)} /></div>
+      <Select aria-label="Meio de pagamento" value={tipo} onChange={(event) => setTipo(event.target.value)}><option value="">Todos os meios</option>{tipos.map((item) => <option key={item} value={item}>{paymentLabel(item)}</option>)}</Select>
+      {(tipo || inicio || fim) && <button type="button" className="button button-sm" onClick={reset}>Limpar filtros</button>}
+    </>} columns={[
+      { key: 'dataHora', label: 'Data e hora', render: (item) => formatDate(item.dataHora, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
+      { key: 'descricao', label: 'Descrição', render: (item) => <><span className="cell-title">{item.descricaoExibicao || item.descricao || 'Recebimento registrado'}</span><span className="cell-subtitle">Transação #{item.id}</span></> },
+      { key: 'tipo', label: 'Pagamento', value: (item) => paymentLabel(item.tipo), render: (item) => <span className="status-badge status-success">{paymentLabel(item.tipo)}</span> },
+      { key: 'comanda', label: 'Comanda', value: (item) => item.comanda ? `${item.comanda.dataNumeracao || ''}-${comandaNumber(item.comanda).padStart(10, '0')}` : '', render: (item) => item.comanda ? comandaReference(item.comanda) : '—' },
+      { key: 'valor', label: 'Valor', value: (item) => Number(item.valor), align: 'right', render: (item) => <span className="cell-title">{formatCurrency(item.valor)}</span> },
+    ]} />
+  </div>;
+}

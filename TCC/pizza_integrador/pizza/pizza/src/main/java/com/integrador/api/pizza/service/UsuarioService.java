@@ -32,9 +32,10 @@ public class UsuarioService {
         );
 
         usuario.setEmail(dados.getEmail().trim().toLowerCase(java.util.Locale.ROOT));
+        usuario.setAtivo(!Boolean.FALSE.equals(dados.getAtivo()));
         var existente = repository.findByEmailIgnoreCase(usuario.getEmail());
         if (existente.isPresent()) {
-            throw new RuntimeException("Usuário já cadastrado com o email: " + dados.getEmail() + ". Por favor, utilize outro email.");
+            throw new IllegalArgumentException("Usuário já cadastrado com o email: " + dados.getEmail() + ". Por favor, utilize outro email.");
         }
 
         return repository.save(usuario);
@@ -53,7 +54,10 @@ public class UsuarioService {
         validarSenha(dados.getSenha(), false);
         var administradores=repository.bloquearAdministradores();
         return repository.findById(id).map(usuarioExistente -> {
-            if(usuarioExistente.getPerfil()==com.integrador.api.pizza.enums.PerfilUsuario.ADMINISTRADOR && administradores.size()<=1 && dados.getPerfil()!=com.integrador.api.pizza.enums.PerfilUsuario.ADMINISTRADOR) throw new IllegalArgumentException("Mantenha pelo menos um administrador.");
+            if (Boolean.FALSE.equals(dados.getAtivo()) && usuarioExistente.getPerfil()==com.integrador.api.pizza.enums.PerfilUsuario.ADMINISTRADOR && usuarioExistente.acessoLiberado() && administradores.stream().filter(Usuario::acessoLiberado).count()<=1) throw new IllegalArgumentException("Mantenha pelo menos um administrador ativo.");
+            var autenticacao=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (Boolean.FALSE.equals(dados.getAtivo()) && autenticacao!=null && autenticacao.getPrincipal() instanceof com.integrador.api.pizza.security.UsuarioAutenticado u && u.getId().equals(id)) throw new IllegalArgumentException("Não é permitido desativar sua própria conta.");
+            if(usuarioExistente.getPerfil()==com.integrador.api.pizza.enums.PerfilUsuario.ADMINISTRADOR && administradores.stream().filter(Usuario::acessoLiberado).count()<=1 && dados.getPerfil()!=com.integrador.api.pizza.enums.PerfilUsuario.ADMINISTRADOR) throw new IllegalArgumentException("Mantenha pelo menos um administrador.");
             var atual=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
             if(atual!=null && atual.getPrincipal() instanceof com.integrador.api.pizza.security.UsuarioAutenticado u && u.getId().equals(id) && dados.getPerfil()!=com.integrador.api.pizza.enums.PerfilUsuario.ADMINISTRADOR) throw new IllegalArgumentException("Não é permitido remover seu próprio acesso de administrador.");
             repository.findByEmailIgnoreCase(dados.getEmail().trim()).filter(u -> !u.getId().equals(id)).ifPresent(u -> { throw new IllegalArgumentException("E-mail já cadastrado."); });
@@ -64,14 +68,15 @@ public class UsuarioService {
                 usuarioExistente.setSenha(passwordEncoder.encode(dados.getSenha()));
             }
             usuarioExistente.setPerfil(dados.getPerfil());
+            if(dados.getAtivo()!=null) usuarioExistente.setAtivo(dados.getAtivo());
             return repository.save(usuarioExistente);
-        }).orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID: " + id));
+        }).orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado com ID: " + id));
     }
 
     @Transactional
     public void deletarUsuario(Long id) {
         var administradores=repository.bloquearAdministradores();
-        if(administradores.size()<=1 && administradores.stream().anyMatch(u -> u.getId().equals(id))) throw new IllegalArgumentException("O último administrador não pode ser excluído.");
+        if(administradores.stream().filter(Usuario::acessoLiberado).count()<=1 && administradores.stream().anyMatch(u -> u.getId().equals(id))) throw new IllegalArgumentException("O último administrador não pode ser excluído.");
         var atual=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         if(atual!=null && atual.getPrincipal() instanceof com.integrador.api.pizza.security.UsuarioAutenticado u && u.getId().equals(id)) throw new IllegalArgumentException("Não é permitido excluir sua própria conta.");
         repository.deleteById(id);

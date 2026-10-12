@@ -21,6 +21,7 @@ public class ProdutoService {
     private MovimentoEstoqueService movimentoEstoqueService;
     @Autowired
     private ProdutoRepository produtoRepository;
+    @Autowired private com.integrador.api.pizza.repository.ComponenteFichaTecnicaRepository componentes;
 
     @Transactional
     public Produto cadastrarProduto(ProdutoCadastroDTO dados) {
@@ -60,10 +61,13 @@ public class ProdutoService {
             produtoExistente.setDescricao(dados.getDescricao());
             produtoExistente.setPreco(dados.getPreco());
             return repository.save(produtoExistente);
-        }).orElseThrow(() -> new RuntimeException("Produto não encontrado com ID: " + id));
+        }).orElseThrow(() -> new IllegalArgumentException("Produto não encontrado com ID: " + id));
     }
 
+    @Transactional
     public void deletarProduto(Long id) {
+        repository.buscarParaAtualizar(id).orElseThrow(() -> new IllegalArgumentException("Produto não encontrado."));
+        componentes.deleteByProdutoId(id);
         repository.deleteById(id);
     }
 }

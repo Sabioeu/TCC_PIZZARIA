@@ -1,49 +1,70 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ClienteForm from '../components/ClienteForm';
 import Icon from '../components/Icon';
 import PageHeader from '../components/PageHeader';
+import DataTable from '../components/DataTable';
+import ConfirmDialog from '../components/ConfirmDialog';
+import CadastroDrawer from '../components/CadastroDrawer';
+import { useToast } from '../components/ToastProvider';
+import { apiErrorMessage } from '../utils/apiError';
+import { maskCpf, maskPhone, onlyDigits } from '../utils/cadastroFields';
 import api from '../api/api';
 
 const CadastroClientePage = () => {
   const [clientes, setClientes] = useState([]);
   const [editando, setEditando] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [formSaving, setFormSaving] = useState(false);
   const [error, setError] = useState('');
+  const [exclusao, setExclusao] = useState(null);
+  const [excluindo, setExcluindo] = useState(false);
+  const [erroExclusao, setErroExclusao] = useState('');
+  const bloqueioExclusao = useRef(false);
+  const { notify } = useToast();
 
   const carregar = useCallback(async () => {
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try { const response = await api.get('/clientes'); setClientes(response.data || []); }
-    catch (err) { console.error(err); setError('Não foi possível carregar os clientes.'); }
+    catch (err) { setError(apiErrorMessage(err, 'Não foi possível carregar os clientes. Tente novamente.')); }
     finally { setLoading(false); }
   }, []);
-
   useEffect(() => { carregar(); }, [carregar]);
 
-  const excluir = async (cliente) => {
-    if (!window.confirm(`Excluir o cliente "${cliente.nome}"?`)) return;
-    try { await api.delete(`/clientes/${cliente.id}`); setClientes((atuais) => atuais.filter((item) => item.id !== cliente.id)); }
-    catch (err) { console.error(err); setError('Não foi possível excluir o cliente. Ele pode estar associado a um pedido.'); }
+  const abrirCadastro = (item = null) => {
+    if (formSaving || excluindo) return;
+    setEditando(item); setFormOpen(true);
+  };
+  const fecharCadastro = () => {
+    if (formSaving) return;
+    setFormOpen(false); setEditando(null);
   };
 
-  return (
-    <CrudPage description="Mantenha os dados de contato organizados para agilizar novos atendimentos." eyebrow="Cadastros" title="Clientes">
-      <section className="split-layout">
-        <FormPanel editing={editando} label="cliente">
-          <ClienteForm clienteParaEdicao={editando} onCadastroSucesso={(item) => setClientes((atuais) => [...atuais, item])} onEdicaoSucesso={(item) => { if (item) setClientes((atuais) => atuais.map((current) => current.id === item.id ? item : current)); setEditando(null); }} />
-        </FormPanel>
-        <ListPanel count={clientes.length} error={error} loading={loading} title="Clientes cadastrados">
-          {clientes.map((cliente) => (
-            <tr key={cliente.id}><td><span className="cell-title">{cliente.nome}</span><span className="cell-subtitle">ID #{cliente.id}</span></td><td>{cliente.cpf}</td><td><span className="cell-title">{cliente.telefone}</span><span className="cell-subtitle">{cliente.endereco}</span></td><Actions onDelete={() => excluir(cliente)} onEdit={() => setEditando(cliente)} /></tr>
-          ))}
-        </ListPanel>
-      </section>
-    </CrudPage>
-  );
-};
+  const excluir = async () => {
+    if (!exclusao || bloqueioExclusao.current) return;
+    bloqueioExclusao.current = true; setExcluindo(true); setErroExclusao('');
+    try {
+      await api.delete(`/clientes/${exclusao.id}`);
+      setClientes((atuais) => atuais.filter((item) => item.id !== exclusao.id));
+      if (editando?.id === exclusao.id) setEditando(null);
+      setExclusao(null); notify('Cliente excluído.', { type: 'success' });
+    } catch (err) { setErroExclusao(apiErrorMessage(err, 'Não foi possível excluir o cliente. Ele pode estar associado a um pedido.')); }
+    finally { bloqueioExclusao.current = false; setExcluindo(false); }
+  };
+  const columns = [
+    { key: 'nome', label: 'Cliente', render: (item) => <><span className="cell-title">{item.nome}</span><span className="cell-subtitle">ID #{item.id}</span></> },
+    { key: 'cpf', label: 'Documento', render: (item) => item.cpf ? maskCpf(item.cpf) : '—' },
+    { key: 'telefone', label: 'Contato', render: (item) => <><span className="cell-title">{item.telefone ? maskPhone(item.telefone) : '—'}</span><span className="cell-subtitle">{item.endereco || 'Sem endereço'}</span></> },
+    { key: 'acoes', label: 'Ações', sortable: false, align: 'right', render: (item) => <div className="table-actions"><button aria-label={`Editar cliente ${item.nome}`} title="Editar cliente" className="icon-button" disabled={excluindo || formSaving} onClick={() => abrirCadastro(item)} type="button"><Icon name="edit" size={15} /></button><button aria-label={`Excluir cliente ${item.nome}`} title="Excluir cliente" className="icon-button" disabled={excluindo || formSaving} onClick={() => { setExclusao(item); setErroExclusao(''); }} style={{ color: 'var(--red)' }} type="button"><Icon name="trash" size={15} /></button></div> },
+  ];
 
-const CrudPage = ({ children, ...header }) => <div className="page-stack"><PageHeader {...header} />{children}</div>;
-const FormPanel = ({ children, editing, label }) => <article className="panel sticky-panel"><div className="panel-header"><div><h2 className="panel-title">{editing ? `Editar ${label}` : `Novo ${label}`}</h2><p className="panel-subtitle">{editing ? `Você está alterando o registro #${editing.id}` : 'Preencha os campos para cadastrar'}</p></div>{editing && <span className="status-badge status-info">Editando</span>}</div><div className="panel-body">{children}</div></article>;
-const ListPanel = ({ children, count, error, loading, title }) => <article className="panel"><div className="panel-header"><div><h2 className="panel-title">{title}</h2><p className="panel-subtitle">{count} registros encontrados</p></div></div>{error && <div className="panel-body"><div className="alert alert-error">{error}</div></div>}{loading ? <div className="loading-state"><div><div className="spinner" />Carregando...</div></div> : count === 0 ? <div className="empty-state"><div><div className="empty-state-icon"><Icon name="clients" /></div><strong>Nenhum registro</strong><p>Os novos cadastros aparecerão aqui.</p></div></div> : <div className="table-wrap"><table className="data-table"><thead><tr><th>Cliente</th><th>Documento</th><th>Contato</th><th style={{ textAlign: 'right' }}>Ações</th></tr></thead><tbody>{children}</tbody></table></div>}</article>;
-const Actions = ({ onDelete, onEdit }) => <td><div className="table-actions"><button aria-label="Editar" className="icon-button" onClick={onEdit} type="button"><Icon name="edit" size={15} /></button><button aria-label="Excluir" className="icon-button" onClick={onDelete} style={{ color: 'var(--red)' }} type="button"><Icon name="trash" size={15} /></button></div></td>;
+  return <div className="page-stack">
+    <PageHeader description="Mantenha os dados de contato organizados para agilizar novos atendimentos." eyebrow="Cadastros" title="Clientes" actions={<button className="button button-primary" disabled={excluindo || formSaving} onClick={() => abrirCadastro()} type="button"><Icon name="plus" size={18} /> Novo cliente</button>} />
+    <DataTable title="Clientes cadastrados" description="Encontre um cliente pela busca e use as ações para atualizar seus dados." rows={clientes} columns={columns} searchKeys={['nome', 'cpf', 'telefone', 'endereco', 'id', (item) => maskCpf(item.cpf), (item) => maskPhone(item.telefone), (item) => onlyDigits(item.cpf), (item) => onlyDigits(item.telefone)]} searchPlaceholder="Buscar cliente, documento ou contato" loading={loading} error={error} onRetry={carregar} defaultSort={{ key: 'nome', direction: 'asc' }} emptyTitle="Nenhum cliente cadastrado" emptyDescription="Clique em Novo cliente para cadastrar o primeiro contato e agilizar os próximos pedidos." />
+    {formOpen && <CadastroDrawer title={editando ? 'Editar cliente' : 'Novo cliente'} subtitle={editando ? `Atualize os dados do registro #${editando.id}.` : 'Cadastre um contato para os próximos atendimentos.'} busy={formSaving} onClose={fecharCadastro}>
+      <ClienteForm onCancel={fecharCadastro} onSavingChange={setFormSaving} clienteParaEdicao={editando} onCadastroSucesso={(item) => { setClientes((atuais) => [...atuais, item]); setFormOpen(false); setEditando(null); }} onEdicaoSucesso={(item) => { if (item) setClientes((atuais) => atuais.map((current) => current.id === item.id ? item : current)); setFormOpen(false); setEditando(null); }} />
+    </CadastroDrawer>}
+    {exclusao && <ConfirmDialog title="Excluir cliente?" description={`O cadastro de ${exclusao.nome} será removido. Registros vinculados a pedidos podem impedir a exclusão.`} confirmLabel="Excluir cliente" onCancel={() => setExclusao(null)} onConfirm={excluir} busy={excluindo} error={erroExclusao} />}
+  </div>;
+};
 export default CadastroClientePage;

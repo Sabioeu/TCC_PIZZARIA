@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,13 +19,17 @@ public class PedidoController {
 
     @Autowired
     private PedidoService service;
-    @Autowired private com.integrador.api.pizza.service.SessaoService sessao;
+
+    // Este recurso conserva o histórico anterior. Novos atendimentos passam
+    // exclusivamente por ComandaService, responsável por reservas e faturamento.
+    private ResponseStatusException fluxoLegado() {
+        return new ResponseStatusException(HttpStatus.GONE,
+                "O fluxo antigo de pedidos está disponível somente para consulta. Use /api/comandas para criar e gerenciar atendimentos.");
+    }
 
     @PostMapping
     public ResponseEntity<Pedido> cadastrar(@RequestBody @Valid PedidoCadastroDTO dados) {
-        dados.setUsuarioId(sessao.usuarioAtual().getId());
-        Pedido pedidoSalvo = service.cadastrarPedido(dados);
-        return ResponseEntity.status(HttpStatus.CREATED).body(pedidoSalvo);
+        throw fluxoLegado();
     }
 
     @GetMapping
@@ -42,28 +47,16 @@ public class PedidoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Pedido> atualizar(@PathVariable Long id, @RequestBody @Valid PedidoCadastroDTO dados) {
-        dados.setUsuarioId(sessao.usuarioAtual().getId());
-        try {
-            Pedido pedidoAtualizado = service.atualizarPedido(id, dados);
-            return ResponseEntity.ok(pedidoAtualizado);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        throw fluxoLegado();
     }
 
-    @PatchMapping("/{id}/status") // Endpoint para atualizar apenas o status
+    @PatchMapping("/{id}/status")
     public ResponseEntity<Pedido> atualizarStatus(@PathVariable Long id, @RequestParam String status) {
-        try {
-            Pedido pedidoAtualizado = service.atualizarStatusPedido(id, status);
-            return ResponseEntity.ok(pedidoAtualizado);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        throw fluxoLegado();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        service.deletarPedido(id);
-        return ResponseEntity.noContent().build();
+        throw fluxoLegado();
     }
 }

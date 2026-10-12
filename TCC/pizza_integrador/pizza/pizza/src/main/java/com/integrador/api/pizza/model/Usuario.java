@@ -41,6 +41,8 @@ public class Usuario {
     @Enumerated(EnumType.STRING) // Armazena o nome da enum como String (ex: "ADMINISTRADOR")
     @Column(name = "perfil_usuario", nullable = false)
     private PerfilUsuario perfil;
+    private Boolean ativo = true;
+    public boolean acessoLiberado() { return !Boolean.FALSE.equals(ativo); }
 
     // ADICIONE ESTE CONSTRUTOR ABAIXO para resolver o problema no UsuarioService:
     // Construtor sem ID (útil para criar novos usuários a partir do DTO)

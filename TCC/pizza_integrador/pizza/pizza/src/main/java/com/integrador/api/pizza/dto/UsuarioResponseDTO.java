@@ -11,11 +11,13 @@ public class UsuarioResponseDTO {
     private String nome;
     private String email;
     private PerfilUsuario perfil;
+    private boolean ativo;
 
     public UsuarioResponseDTO(Usuario usuario) {
         this.id = usuario.getId();
         this.nome = usuario.getNome();
         this.email = usuario.getEmail();
         this.perfil = usuario.getPerfil();
+        this.ativo = usuario.acessoLiberado();
     }
 }

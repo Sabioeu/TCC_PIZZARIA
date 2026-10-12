@@ -30,6 +30,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/csrf","/api/auth/config","/api/auth/login","/api/auth/registro","/error").permitAll()
                 .requestMatchers("/api/usuarios/**","/swagger-ui/**","/swagger-ui.html","/v3/api-docs/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/api/transacoes/**","/api/contas/**","/api/relatorios/**","/api/dashboard/**","/api/movimentos-estoque/**").hasAnyRole("ADMINISTRADOR","GERENTE")
+                .requestMatchers("/api/produtos/*/ficha-tecnica").hasAnyRole("ADMINISTRADOR","GERENTE")
                 .requestMatchers(HttpMethod.GET,"/api/**").authenticated()
                 .requestMatchers("/api/produtos/**","/api/insumos/**","/api/fornecedores/**","/api/mesas/**").hasAnyRole("ADMINISTRADOR","GERENTE")
                 .requestMatchers(HttpMethod.DELETE,"/api/**").hasAnyRole("ADMINISTRADOR","GERENTE")
@@ -37,7 +38,7 @@ public class SecurityConfig {
                 .anyRequest().denyAll())
             .formLogin(login->login.loginProcessingUrl("/api/auth/login").usernameParameter("email")
                 .successHandler((request,response,auth)->{ response.setContentType("application/json;charset=UTF-8"); json.writeValue(response.getOutputStream(),Map.of("message","Login realizado.")); })
-                .failureHandler((request,response,error)->{ response.setStatus(401); response.setContentType("application/json;charset=UTF-8"); json.writeValue(response.getOutputStream(),Map.of("message","E-mail ou senha incorretos.")); }))
+                .failureHandler((request,response,error)->{ response.setStatus(401); response.setContentType("application/json;charset=UTF-8"); json.writeValue(response.getOutputStream(),Map.of("message","Não foi possível entrar. Confira e-mail e senha; novas contas precisam de aprovação do administrador.")); }))
             .logout(logout->logout.logoutUrl("/api/auth/logout").deleteCookies("JSESSIONID")
                 .logoutSuccessHandler((request,response,auth)->response.setStatus(204)))
             .exceptionHandling(errors->errors

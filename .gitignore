@@ -9,3 +9,10 @@
 .idea/
 .vscode/
 *.log
+**/.dev-runtime/
+**/.env.*.local
+**/.env.local
+**/ngrok.yml
+**/ngrok.yaml
+**/*.pem
+**/*.key

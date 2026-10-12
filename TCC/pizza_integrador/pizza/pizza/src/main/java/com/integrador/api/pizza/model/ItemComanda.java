@@ -37,6 +37,14 @@ public class ItemComanda {
     @JoinColumn(name = "produto_id", nullable = false)
     private Produto produto;
 
+    // Snapshot: a venda antiga não muda quando a ficha técnica for revisada.
+    @Column(name = "estoque_por_ingredientes")
+    private Boolean porIngredientes;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<ConsumoItemComanda> ingredientes = new java.util.ArrayList<>();
+
     // Construtor para uso com DTO de cadastro de item (sem o ID e subtotal, que é calculado)
     public ItemComanda(Integer quantidade, Double precoUnitario, Comanda comanda, Produto produto) {
         this.quantidade = quantidade;

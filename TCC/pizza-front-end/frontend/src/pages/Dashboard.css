@@ -1,0 +1,39 @@
+.dashboard-refresh-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.dashboard-refresh-copy { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; color: var(--ink-soft); font-size: 11px; line-height: 1.6; }
+.dashboard-refresh-copy .icon { color: var(--ink-faint); flex-shrink: 0; }
+.dashboard-refresh-copy small { padding: 3px 7px; border-radius: 6px; color: var(--ink-faint); background: #e9eef4; font-size: 10px; }
+.dashboard-chart-detail { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; padding: 12px 14px; border: 1px solid #f5e0d3; border-radius: 10px; background: #fff9f5; }
+.dashboard-chart-detail span { color: var(--ink-soft); font-size: 11px; text-transform: capitalize; }
+.dashboard-chart-detail strong { color: var(--brand); font-size: 16px; }
+.dashboard-weekly-chart { height: 195px; }
+.dashboard-bar-button { min-width: 0; margin: 0; padding: 6px 0 0; background: transparent; border: 0; border-radius: 8px 8px 0 0; cursor: pointer; transition: background 150ms ease; }
+.dashboard-bar-button:hover, .dashboard-bar-button.selected { background: rgba(232, 100, 25, .06); }
+.dashboard-bar-button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.dashboard-bar-button.selected .bar-label { color: var(--brand); }
+.dashboard-bar-button .bar-fill { display: block; }
+.dashboard-chart-help { color: var(--ink-faint); margin: 12px 0 0; font-size: 10.5px; line-height: 1.6; }
+.dashboard-payment-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 7px; margin: 0 0 12px; font-size: 11px; color: var(--ink-soft); }
+.dashboard-payment-summary strong { font-size: 14px; color: var(--ink); }
+.dashboard-payment-legend { display: grid; gap: 7px; }
+.dashboard-payment-row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: #fff; cursor: pointer; color: var(--ink-soft); font: inherit; font-size: 11px; }
+.dashboard-payment-row.selected { border-color: #efc5ad; background: #fff9f5; }
+.dashboard-payment-row:hover { background: #f9fafc; }
+.dashboard-payment-row:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.dashboard-payment-row .legend-dot { flex-shrink: 0; }
+.dashboard-payment-label { flex: 1; font-weight: 700; }
+.dashboard-payment-label small { display: block; margin-top: 4px; color: var(--ink-faint); font-size: 10px; font-weight: 400; }
+.dashboard-payment-row strong { color: var(--ink); white-space: nowrap; }
+.dashboard-payment-percent { min-width: 32px; color: var(--ink-faint); text-align: right; font-size: 10px; }
+.dashboard-payment-reset { display: block; margin: 12px auto 0; }
+
+@media (max-width: 560px) {
+  .dashboard-refresh-row > .button { width: 100%; }
+  .dashboard-chart-detail { padding: 10px; }
+  .dashboard-weekly-chart { gap: 6px; }
+  .dashboard-bar-button .bar-label { font-size: 9px; }
+  .dashboard-payment-row { font-size: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-bar-button, .dashboard-bar-button .bar-fill { transition: none; }
+}

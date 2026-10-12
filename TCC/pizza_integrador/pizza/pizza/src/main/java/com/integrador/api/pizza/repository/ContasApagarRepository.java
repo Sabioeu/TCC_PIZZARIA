@@ -2,6 +2,8 @@ package com.integrador.api.pizza.repository;
 import com.integrador.api.pizza.model.ContaAPagar;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -9,8 +11,11 @@ import java.util.List;
 @Repository
 public interface ContasApagarRepository extends JpaRepository<ContaAPagar, Long> {
 
-    // Método para excluir todas as parcelas de um mesmo carnê
-    void deleteByGrupoId(String grupoId);
+    // Todas as operações bloqueiam o grupo na mesma ordem, evitando exclusão de parcelas pagas.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM ContaAPagar c WHERE c.id = :id OR c.grupoId = " +
+            "(SELECT referencia.grupoId FROM ContaAPagar referencia WHERE referencia.id = :id) ORDER BY c.id")
+    List<ContaAPagar> buscarGrupoParaAtualizar(Long id);
 
     // Query customizada para o histórico do Frontend
     @Query("SELECT c FROM ContaAPagar c WHERE " +

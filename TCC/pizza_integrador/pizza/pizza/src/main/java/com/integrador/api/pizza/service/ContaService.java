@@ -28,13 +28,19 @@ import java.util.UUID;
         @Autowired
         private FornecedorService fornecedorService;
 
+        @Transactional
         public List<ContaAPagar> criarContas(ContaInputDTO dto) {
+            if (dto.getParcelas() == null || dto.getParcelas() < 1 || dto.getParcelas() > 120
+                    || dto.getValorTotal() == null || dto.getValorTotal().scale() > 2
+                    || dto.getValorTotal().compareTo(new BigDecimal("0.01").multiply(BigDecimal.valueOf(dto.getParcelas()))) < 0) {
+                throw new IllegalArgumentException("Informe um valor válido e de 1 a 120 parcelas de pelo menos R$ 0,01.");
+            }
             List<ContaAPagar> novasContas = new ArrayList<>();
             String grupoId = UUID.randomUUID().toString();
             Fornecedor fornecedor = fornecedorService.buscarPorId(dto.getFornecedorId());
 
             BigDecimal valorParcela = dto.getValorTotal().divide(
-                    BigDecimal.valueOf(dto.getParcelas()), 2, RoundingMode.HALF_UP
+                    BigDecimal.valueOf(dto.getParcelas()), 2, RoundingMode.DOWN
             );
 
             for (int i = 0; i < dto.getParcelas(); i++) {
@@ -43,7 +49,10 @@ import java.util.UUID;
                         dto.getDescricao() + " (" + (i + 1) + "/" + dto.getParcelas() + ")" :
                         dto.getDescricao());
 
-                conta.setValor(valorParcela);
+                // A última parcela absorve os centavos restantes: a soma preserva o valor informado.
+                conta.setValor(i == dto.getParcelas() - 1
+                        ? dto.getValorTotal().subtract(valorParcela.multiply(BigDecimal.valueOf(i)))
+                        : valorParcela);
                 conta.setDataVencimento(dto.getPrimeiroVencimento().plusMonths(i));
                 conta.setStatus(StatusConta.PENDENTE);
                 conta.setFornecedor(fornecedor);
@@ -54,26 +63,32 @@ import java.util.UUID;
             return repository.saveAll(novasContas);
         }
 
+        @Transactional(readOnly = true)
         public List<ContaAPagar> buscarComFiltros(Long fornecedorId, String mesAno) {
-            List<ContaAPagar> contas = repository.buscarComFiltros(fornecedorId, mesAno);
-            boolean houveAlteracao = false;
-            for (ContaAPagar conta : contas) {
-                if (conta.getStatus() == StatusConta.PENDENTE
-                        && conta.getDataVencimento() != null
-                        && conta.getDataVencimento().isBefore(LocalDate.now())) {
-                    conta.setStatus(StatusConta.VENCIDA);
-                    houveAlteracao = true;
-                }
+            if (mesAno != null && !mesAno.matches("\\d{4}-(0[1-9]|1[0-2])")) {
+                throw new IllegalArgumentException("Informe o mês no formato AAAA-MM.");
             }
-            return houveAlteracao ? repository.saveAll(contas) : contas;
+            // Cópias para exibição: a consulta jamais salva sobre um pagamento concorrente.
+            return repository.buscarComFiltros(fornecedorId, mesAno).stream().map(conta -> {
+                ContaAPagar exibida = new ContaAPagar();
+                exibida.setId(conta.getId());
+                exibida.setDescricao(conta.getDescricao());
+                exibida.setValor(conta.getValor());
+                exibida.setDataVencimento(conta.getDataVencimento());
+                exibida.setDataPagamento(conta.getDataPagamento());
+                exibida.setFornecedor(conta.getFornecedor());
+                exibida.setGrupoId(conta.getGrupoId());
+                exibida.setStatus(conta.getStatus() != StatusConta.PAGA && conta.getDataVencimento() != null
+                        && conta.getDataVencimento().isBefore(LocalDate.now()) ? StatusConta.VENCIDA : conta.getStatus());
+                return exibida;
+            }).toList();
         }
 
         @Transactional
         public ContaAPagar atualizar(Long id, ContaAtualizacaoDTO dto) {
-            ContaAPagar conta = repository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Conta não encontrada"));
+            ContaAPagar conta = buscarContaBloqueada(id);
             if (conta.getStatus() == StatusConta.PAGA) {
-                throw new RuntimeException("Uma conta paga não pode ser alterada.");
+                throw new IllegalArgumentException("Uma conta paga não pode ser alterada.");
             }
             conta.setDescricao(dto.getDescricao());
             conta.setValor(dto.getValor());
@@ -86,8 +101,7 @@ import java.util.UUID;
 
         @Transactional
         public ContaAPagar pagar(Long id) {
-            ContaAPagar conta = repository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Conta não encontrada"));
+            ContaAPagar conta = buscarContaBloqueada(id);
             if (conta.getStatus() == StatusConta.PAGA) {
                 return conta;
             }
@@ -98,17 +112,19 @@ import java.util.UUID;
 
         @Transactional
         public void excluir(Long id) {
-            ContaAPagar conta = repository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Conta não encontrada"));
-
-            if (conta.getStatus() == StatusConta.PAGA) {
-                throw new RuntimeException("Não é permitido excluir uma conta já paga.");
+            List<ContaAPagar> grupo = repository.buscarGrupoParaAtualizar(id);
+            if (grupo.stream().noneMatch(conta -> conta.getId().equals(id))) {
+                throw new IllegalArgumentException("Conta não encontrada.");
             }
-
-            if (conta.getGrupoId() != null) {
-                repository.deleteByGrupoId(conta.getGrupoId());
-            } else {
-                repository.delete(conta);
+            if (grupo.stream().anyMatch(conta -> conta.getId().equals(id) && conta.getStatus() == StatusConta.PAGA)) {
+                throw new IllegalArgumentException("Não é permitido excluir uma conta já paga.");
             }
+            // Pagamentos permanecem no histórico mesmo ao excluir as parcelas ainda em aberto.
+            repository.deleteAll(grupo.stream().filter(conta -> conta.getStatus() != StatusConta.PAGA).toList());
+        }
+
+        private ContaAPagar buscarContaBloqueada(Long id) {
+            return repository.buscarGrupoParaAtualizar(id).stream().filter(conta -> conta.getId().equals(id))
+                    .findFirst().orElseThrow(() -> new IllegalArgumentException("Conta não encontrada."));
         }
     }

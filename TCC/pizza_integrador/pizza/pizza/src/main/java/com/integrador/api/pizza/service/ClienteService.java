@@ -48,7 +48,7 @@ public class ClienteService {
             clienteExistente.setEndereco(dados.getEndereco());
             clienteExistente.setTelefone(dados.getTelefone());
             return clienteRepository.save(clienteExistente);
-        }).orElseThrow(() -> new RuntimeException("Cliente não encontrado com ID: " + id));
+        }).orElseThrow(() -> new IllegalArgumentException("Cliente não encontrado com ID: " + id));
     }
 
     public void deletarCliente(Long id) {

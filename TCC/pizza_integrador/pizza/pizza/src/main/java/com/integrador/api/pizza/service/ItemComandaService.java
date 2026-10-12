@@ -16,6 +16,10 @@ import java.util.Optional;
 
 @Service
 public class ItemComandaService {
+    private void validarEdicao(Comanda comanda) {
+        if (!"ABERTA".equals(comanda.getStatus())) throw new IllegalArgumentException("Comanda fechada não aceita alterações.");
+        if (comanda.getTipoAtendimento() != com.integrador.api.pizza.enums.TipoAtendimento.PRESENCIAL && comanda.getEtapaAtendimento() != com.integrador.api.pizza.enums.EtapaAtendimento.RECEBIDO) throw new IllegalArgumentException("Altere os itens antes de iniciar o preparo.");
+    }
 
     @Autowired
     private ItemComandaRepository itemComandaRepository;
@@ -25,6 +29,7 @@ public class ItemComandaService {
 
     @Autowired
     private ProdutoRepository produtoRepository;
+    @Autowired private DisponibilidadeEstoqueService disponibilidade;
 
     // =========================================================================================
     // Métodos Auxiliares
@@ -35,7 +40,7 @@ public class ItemComandaService {
      */
     private void recalcularTotalComanda(Long comandaId) {
         Comanda comanda = comandaRepository.buscarParaAtualizar(comandaId)
-                .orElseThrow(() -> new RuntimeException("Comanda não encontrada com ID: " + comandaId));
+                .orElseThrow(() -> new IllegalArgumentException("Comanda não encontrada com ID: " + comandaId));
 
         // Busca a lista atualizada de itens do repositório
         List<ItemComanda> itens = itemComandaRepository.findByComandaId(comandaId);
@@ -44,7 +49,7 @@ public class ItemComandaService {
                 .mapToDouble(ItemComanda::getSubtotal)
                 .sum();
 
-        comanda.setTotal(novoTotal);
+        comanda.setTotal(java.math.BigDecimal.valueOf(novoTotal).add(comanda.getTaxaEntrega()).setScale(2, java.math.RoundingMode.HALF_UP).doubleValue());
         comandaRepository.save(comanda);
     }
 
@@ -54,11 +59,10 @@ public class ItemComandaService {
     @Transactional
     public ItemComanda cadastrarItemComanda(Long comandaId, ItemComandaCadastroDTO dados) {
         Comanda comanda = comandaRepository.buscarParaAtualizar(comandaId)
-                .orElseThrow(() -> new RuntimeException("Comanda não encontrada com ID: " + comandaId));
-        if (!"ABERTA".equals(comanda.getStatus())) throw new IllegalArgumentException("Comanda fechada não aceita alterações.");
+                .orElseThrow(() -> new IllegalArgumentException("Comanda não encontrada com ID: " + comandaId));
+        validarEdicao(comanda);
 
-        Produto produto = produtoRepository.findById(dados.getProdutoId())
-                .orElseThrow(() -> new RuntimeException("Produto não encontrado com ID: " + dados.getProdutoId()));
+        Produto produto = disponibilidade.validarInclusao(dados.getProdutoId(),dados.getQuantidade());
 
         if (dados.getQuantidade() <= 0) {
             throw new IllegalArgumentException("A quantidade do item deve ser maior que zero.");
@@ -74,6 +78,7 @@ public class ItemComandaService {
         itemComanda.setQuantidade(dados.getQuantidade());
         itemComanda.setPrecoUnitario(precoUnitario);
         itemComanda.setSubtotal(subtotal);
+        disponibilidade.capturarFicha(itemComanda);
 
         ItemComanda itemSalvo = itemComandaRepository.save(itemComanda);
 
@@ -107,9 +112,9 @@ public class ItemComandaService {
     @Transactional
     public ItemComanda atualizarItemComanda(Long comandaId, Long id, ItemComandaCadastroDTO dados) {
         Comanda comanda = comandaRepository.buscarParaAtualizar(comandaId).orElseThrow(() -> new IllegalArgumentException("Comanda não encontrada."));
-        if (!"ABERTA".equals(comanda.getStatus())) throw new IllegalArgumentException("Comanda fechada não aceita alterações.");
+        validarEdicao(comanda);
         ItemComanda itemExistente = itemComandaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Item de Comanda não encontrado com ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Item de Comanda não encontrado com ID: " + id));
         if (!itemExistente.getComanda().getId().equals(comandaId)) throw new IllegalArgumentException("Item não pertence a esta comanda.");
         if (!itemExistente.getProduto().getId().equals(dados.getProdutoId())) throw new IllegalArgumentException("Não é permitido trocar o produto do item. Remova e adicione o item correto.");
 
@@ -118,6 +123,8 @@ public class ItemComandaService {
         }
 
         // 1. Atualizar campos
+        if(dados.getQuantidade()>itemExistente.getQuantidade()) disponibilidade.validarAumento(itemExistente,dados.getQuantidade()-itemExistente.getQuantidade());
+        else disponibilidade.bloquearItens(List.of(itemExistente));
         itemExistente.setQuantidade(dados.getQuantidade());
 
         // NOTA: Geralmente o preço unitário NÃO muda em um pedido existente.
@@ -142,13 +149,14 @@ public class ItemComandaService {
     @Transactional
     public void deletarItemComanda(Long comandaId, Long id) {
         Comanda comanda = comandaRepository.buscarParaAtualizar(comandaId).orElseThrow(() -> new IllegalArgumentException("Comanda não encontrada."));
-        if (!"ABERTA".equals(comanda.getStatus())) throw new IllegalArgumentException("Comanda fechada não aceita alterações.");
+        validarEdicao(comanda);
         ItemComanda itemToDelete = itemComandaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Item de Comanda não encontrado com ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Item de Comanda não encontrado com ID: " + id));
 
         if (!itemToDelete.getComanda().getId().equals(comandaId)) throw new IllegalArgumentException("Item não pertence a esta comanda.");
 
         // 1. Deletar o item
+        disponibilidade.bloquearItens(List.of(itemToDelete));
         itemComandaRepository.deleteById(id);
 
         // 2. Recalcular o total da comanda (CRUCIAL!)

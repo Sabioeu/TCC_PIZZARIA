@@ -40,12 +40,8 @@ public class TransacaoFinanceiraController {
 
     @PutMapping("/{id}")
     public ResponseEntity<TransacaoFinanceira> atualizar(@PathVariable Long id, @RequestBody @Valid TransacaoFinanceiraCadastroDTO dados) {
-        try {
-            TransacaoFinanceira transacaoAtualizada = service.atualizarTransacao(id, dados);
-            return ResponseEntity.ok(transacaoAtualizada);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        TransacaoFinanceira transacaoAtualizada = service.atualizarTransacao(id, dados);
+        return ResponseEntity.ok(transacaoAtualizada);
     }
 
     @DeleteMapping("/{id}")

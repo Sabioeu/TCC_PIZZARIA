@@ -15,6 +15,7 @@ public class MovimentoEstoqueService {
     private final MovimentoEstoqueRepository movimentos;
     private final ProdutoRepository produtos;
     private final InsumoRepository insumos;
+    @org.springframework.beans.factory.annotation.Autowired private DisponibilidadeEstoqueService disponibilidade;
     public MovimentoEstoqueService(MovimentoEstoqueRepository m,ProdutoRepository p,InsumoRepository i) { movimentos=m; produtos=p; insumos=i; }
 
     @Transactional
@@ -26,16 +27,27 @@ public class MovimentoEstoqueService {
         d.setProdutoId(id); d.setTipo("SAIDA"); d.setQuantidade(quantidade);
         return registrar(d,origem,referencia);
     }
+    @Transactional
+    public MovimentoEstoque registrarSaidaInsumo(Long id,double quantidade,String origem,Long referencia) {
+        MovimentoEstoqueCadastroDTO d=new MovimentoEstoqueCadastroDTO();
+        d.setInsumoId(id); d.setTipo("SAIDA"); d.setQuantidade(quantidade);
+        return registrar(d,origem,referencia);
+    }
     private MovimentoEstoque registrar(MovimentoEstoqueCadastroDTO d,String origem,Long referencia) {
         validar(d);
         Produto p=null; Insumo i=null;
         double delta=d.getTipo().equals("ENTRADA") ? d.getQuantidade() : -d.getQuantidade();
         if(d.getProdutoId()!=null) {
-            p=produtos.buscarParaAtualizar(d.getProdutoId()).orElseThrow(()->erro("Produto não encontrado."));
-            p.setQuantidade(saldo(p.getQuantidade(),delta,p.getNome())); produtos.save(p);
+            p=disponibilidade.buscarProdutoParaAtualizar(d.getProdutoId());
+            if(p.getPorIngredientes()) throw erro("Este produto usa ficha técnica. Registre entradas e saídas nos insumos; o estoque físico de unidades anterior é preservado.");
+            double novoSaldo=saldo(p.getQuantidade(),delta,p.getNome());
+            if(delta<0) disponibilidade.preservarReservas(p,novoSaldo,"COMANDA".equals(origem) ? referencia : null);
+            p.setQuantidade(novoSaldo); produtos.save(p);
         } else {
-            i=insumos.buscarParaAtualizar(d.getInsumoId()).orElseThrow(()->erro("Insumo não encontrado."));
-            i.setQuantidade(saldo(i.getQuantidade(),delta,i.getNome())); insumos.save(i);
+            i=disponibilidade.buscarInsumoParaAtualizar(d.getInsumoId());
+            double novoSaldo=saldo(i.getQuantidade(),delta,i.getNome());
+            if(delta<0) disponibilidade.preservarReservasInsumo(i,novoSaldo,"COMANDA".equals(origem) ? referencia : null);
+            i.setQuantidade(novoSaldo); insumos.save(i);
         }
         MovimentoEstoque m=new MovimentoEstoque(LocalDateTime.now(),d.getTipo(),d.getQuantidade(),p,i);
         m.setOrigem(origem); m.setReferencia(referencia); return movimentos.save(m);
@@ -73,11 +85,16 @@ public class MovimentoEstoqueService {
     }
     private void ajustar(MovimentoEstoque m,double delta) {
         if(m.getProduto()!=null) {
-            Produto p=produtos.buscarParaAtualizar(m.getProduto().getId()).orElseThrow(()->erro("Produto não encontrado."));
-            p.setQuantidade(saldo(p.getQuantidade(),delta,p.getNome())); produtos.save(p);
+            Produto p=disponibilidade.buscarProdutoParaAtualizar(m.getProduto().getId());
+            if(p.getPorIngredientes()) throw erro("Este produto usa ficha técnica. Para corrigir movimentos antigos de unidades, desative a ficha após concluir os atendimentos abertos.");
+            double novoSaldo=saldo(p.getQuantidade(),delta,p.getNome());
+            if(delta<0) disponibilidade.preservarReservas(p,novoSaldo,null);
+            p.setQuantidade(novoSaldo); produtos.save(p);
         } else if(m.getInsumo()!=null) {
-            Insumo i=insumos.buscarParaAtualizar(m.getInsumo().getId()).orElseThrow(()->erro("Insumo não encontrado."));
-            i.setQuantidade(saldo(i.getQuantidade(),delta,i.getNome())); insumos.save(i);
+            Insumo i=disponibilidade.buscarInsumoParaAtualizar(m.getInsumo().getId());
+            double novoSaldo=saldo(i.getQuantidade(),delta,i.getNome());
+            if(delta<0) disponibilidade.preservarReservasInsumo(i,novoSaldo,null);
+            i.setQuantidade(novoSaldo); insumos.save(i);
         } else throw erro("Movimento antigo sem item associado: correção automática não é segura.");
     }
     private static void editavel(MovimentoEstoque m) {
